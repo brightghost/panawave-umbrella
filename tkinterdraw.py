@@ -22,7 +22,9 @@ def place_sticker(radius, offsetAngle):
  	# stickerOrigin = some trig here
 	Pass
 
-
+# TODO so tk has a polygon class already, not sure why I didn't use that 
+# in the first place? So really we should extend that class with our custom
+# interfaces and values; now to figure out how to do that...
 class Polygon:
 	'''Polygon class expects a list of tuples defining an enclosed poly,
 		optionally allowing manual definition of centroid point'''
@@ -31,7 +33,7 @@ class Polygon:
 		self.points = pointList
 		if self.centroid is None:
 			# calculate centroid
-			# this is a very imperfect method which is probably
+			# this is a problematic method which is probably
 			# only useful for rectangles
 			xmean, ymean = 0, 0
 			for point in pointList:
@@ -56,8 +58,11 @@ class Polygon:
 		# return Polygon(rotatedPoints, self.centroid)
 	 	# actually I don't think we want to generate a new object..
 		self.points = rotatedPoints
+	def draw(self, canvas):
+		'''draw our polygon to the indicated canvas'''
 		
 if __name__ == "__main__":
+	print("drawing canvas")
 	drawCanvas()
 	
 	
