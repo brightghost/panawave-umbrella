@@ -1,14 +1,15 @@
 from tkinter import *
-from math import sqrt, sin, cos, tan, asin, acos, atan
+from math import *
 
 
 def drawCanvas():
-	master = Tk()
-	w = Canvas(master, width=800, height=800)
-	w.pack()
-	w.create_line(0, 0, 200, 100)
-	w.create_line(0, 100, 200, 0, fill="red", dash=(4, 4))
-	w.create_rectangle(50, 25, 150, 75, fill="blue")
+    master = Tk()
+    w = Canvas(master, width=800, height=800)
+    w.pack()
+    w.create_line(0, 0, 200, 100)
+    w.create_line(0, 100, 200, 0, fill="red", dash=(4, 4))
+    w.create_rectangle(50, 25, 150, 75, fill="blue")
+    return w
 
 # basic assumptions of the canvas: origin at center, radial
 # positions specified by setting radius along pos. Y axis and
@@ -19,51 +20,77 @@ baseStickerPoly = [[0,0], [0,2], [2,2], [2,0]]
 
 
 def place_sticker(radius, offsetAngle):
- 	# stickerOrigin = some trig here
-	Pass
+    # stickerOrigin = some trig here
+    Pass
 
 # TODO so tk has a polygon class already, not sure why I didn't use that 
 # in the first place? So really we should extend that class with our custom
 # interfaces and values; now to figure out how to do that...
+
+# ah, that's why: its not actually a polygon class; it is a polygon generator
+# don't think tk canvas elements are objects so let's create one
 class Polygon:
-	'''Polygon class expects a list of tuples defining an enclosed poly,
-		optionally allowing manual definition of centroid point'''
-	def __init__(self, pointList, centroid=None):
-		self.centroid = centroid
-		self.points = pointList
-		if self.centroid is None:
-			# calculate centroid
-			# this is a problematic method which is probably
-			# only useful for rectangles
-			xmean, ymean = 0, 0
-			for point in pointList:
-				xmean += point[0]
-				ymean += point[1]
-			xmean = xmean / len(pointList)
-			ymean = ymean / len(pointList)
-			self.centroid = (xmean, ymean)
-	points = []
-	def rotate(self, angle):
-		'''rotate about centroid and return new polygon'''
-		rotatedPoints = []
-		for point in self.points:
-			x , y = (point[0] - self.centroid[0]) , \
-				(point[1] - self.centroid[1])
-			rad = sqrt(x * x + y * y)
-			startAngle = tan(y / x)
-			newAngle = startAngle + angle
-			newX = rad * cos(newAngle)
-			newY = rad * sin(newAngle)
-			rotatedPoints.append((newX, newY))
-		# return Polygon(rotatedPoints, self.centroid)
-	 	# actually I don't think we want to generate a new object..
-		self.points = rotatedPoints
-	def draw(self, canvas):
-		'''draw our polygon to the indicated canvas'''
-		
+    '''Polygon class expects a list of tuples defining an enclosed poly,
+    optionally allowing manual definition of centroid point
+    '''
+
+    def __init__(self, pointList, centroid=None):
+        self.centroid = centroid
+        for point in pointList:
+            if type(point) is not "tuple":
+                point = tuple(point)
+        self.points = pointList
+        if self.centroid is None:
+            # calculate centroid
+            # this is a problematic method which is probably
+            # only useful for rectangles
+            xmean, ymean = 0, 0
+            for point in pointList:
+                xmean += point[0]
+                ymean += point[1]
+            xmean = xmean / len(pointList)
+            ymean = ymean / len(pointList)
+            self.centroid = (xmean, ymean)
+
+    points = []
+
+    def rotate(self, angle):
+        '''rotate about centroid and return new polygon. accepts degrees.'''
+        rotatedPoints = []
+        for point in self.points:
+            a , b = (point[0] - self.centroid[0]) , \
+                    (point[1] - self.centroid[1])
+            radius = sqrt(a * a + b * b)
+            startAngle = tan(b / a)
+            newAngle = startAngle + radians(angle)
+            newA = radius * cos(newAngle)
+            newB = radius * sin(newAngle)
+            newX, newY = (newA + self.centroid[0], \
+                          newB + self.centroid[1])
+            rotatedPoints.append((newX, newY))
+        # return Polygon(rotatedPoints, self.centroid)
+        # actually I don't think we want to generate a new object..
+        self.points = rotatedPoints
+
+    def translate(self, xTranslate, yTranslate):
+        translatedPoints = []
+        for point in self.points:
+            newX , newY = (point[0] + xTranslate) , \
+                          (point[1] + yTranslate)
+            translatedPoints.append((newX, newY))
+        self.points = translatedPoints
+        cX, cY = self.centroid
+        self.cetroid = (cX + xTranslate, cY + yTranslate)  
+            
+
+
+    def draw(self, canvas):
+        '''draw our polygon to the indicated canvas'''
+        canvas.create_polygon(*self.points)
+        
 if __name__ == "__main__":
-	print("drawing canvas")
-	drawCanvas()
-	
-	
+    print("drawing canvas")
+    drawCanvas()
+    
+    
 
