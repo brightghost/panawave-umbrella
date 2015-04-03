@@ -60,11 +60,26 @@ class Polygon:
         for point in self.points:
             a , b = (point[0] - self.centroid[0]) , \
                     (point[1] - self.centroid[1])
-            radius = sqrt(a * a + b * b)
-            startAngle = tan(b / a)
+            # the pythagorean theorem only holds true for positive values, so
+            # we'll convert everythin and remember so we can switch it back.
+            # there's probably a more elagant way for this but math gives me a
+            # headache
+            if a < 0:
+                absA = True
+                a = -a
+            if b < 0:
+                absB = True
+                b = -b
+	    radius = sqrt(a*a + b*b)
+            startAngle = atan(b / a)
             newAngle = startAngle + radians(angle)
             newA = radius * cos(newAngle)
             newB = radius * sin(newAngle)
+            # switch back to negative if neccesarry
+            if absA == True:
+                newA = -newA
+            if absB == True:
+                newB = -newB
             newX, newY = (newA + self.centroid[0], \
                           newB + self.centroid[1])
             rotatedPoints.append((newX, newY))
