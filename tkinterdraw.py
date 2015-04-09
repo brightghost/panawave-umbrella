@@ -70,7 +70,7 @@ class Polygon:
             if b < 0:
                 absB = True
                 b = -b
-	    radius = sqrt(a*a + b*b)
+            radius = sqrt(a*a + b*b)
             startAngle = atan(b / a)
             newAngle = startAngle + radians(angle)
             newA = radius * cos(newAngle)
