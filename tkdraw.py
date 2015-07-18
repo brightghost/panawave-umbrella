@@ -1,6 +1,6 @@
 from tkinter import *
-from math import degrees
-import cmath.exp
+from math import degrees, radians
+from cmath import exp
 from time import sleep
 
 def draw_canvas(tkinstance):
@@ -12,33 +12,77 @@ def draw_canvas(tkinstance):
     # this will position origin at center
     w.configure(scrollregion=(-400,-400,400,400))
     w.pack()
-    # just some doodles to verify everything's working...
-    w.create_line(-40, -20, 40, 20)
+    # center crosshairs
     w.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
+    w.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
     return w
 
 
 def test_poly():
     '''sample data for testing purposes'''
     testpoints = [(10, 10), (70, 10), (70, 70), (10, 70)]
-    our_polygon = PanawavePanawavePolygon(testpoints)
+    our_polygon = PanawavePolygon(testpoints)
     return our_polygon
 
 class PanawaveApp:
     '''our GUI app for working with PanawaveStructs'''
-    def __init__(self):
-        self.create_ui()
-
+    def __init__(self, file=None):
+        self.tkapp = self.create_ui()
+        self.working_struct = self.load_new_struct(file)
+        self.working_struct.draw(self.pw_canvas)
+        self.tkapp.mainloop()
 
     def create_ui(self):
         master = Tk()
-        panawave_canvas = draw_canvas(master)
-        panawave_control_frame = Frame(master)
-        panawave_list_box = ListBox(panawave_control_frame)
-        panawave_input_radius = Text(panawave_control_frame)
-        panawave_input_count = Text(panawave_control_frame)
-        panawave_input_offset = Text(panawave_control_frame)
-        panawave_input_submit = Button(panawave_control_frame, text="Create")
+        master.columnconfigure(0, weight=1, minsize=400)
+        master.rowconfigure(0, weight=1, minsize=400)
+
+        # MAIN VIEW:
+        self.pw_canvas = draw_canvas(master)
+        # position canvas origin at center
+        self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
+        self.pw_canvas.grid(row=0, column=0, rowspan=6, sticky=(N,E,S,W))
+
+        # SIDE BAR:
+        # struct listing
+        self.pw_list_box = Listbox(master, height=10)
+        self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
+        self.pw_lb_s = Scrollbar(master, orient=VERTICAL, \
+                command=self.pw_list_box.yview)
+        self.pw_lb_s.grid(row=0, column=5, sticky=(N,S))
+        self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
+
+        # ring attribute entry
+        self.pw_input_radius = Entry(master)
+        self.pw_input_radius.configure(width=4)
+        self.pw_input_radius.grid(row=1, column=2, sticky=N)
+        self.pw_input_count = Entry(master)
+        self.pw_input_count.configure(width=4)
+        self.pw_input_count.grid(row=1, column=3, sticky=N)
+        self.pw_input_offset = Entry(master)
+        self.pw_input_offset.configure(width=4)
+        self.pw_input_offset.grid(row=1, column=4, sticky=N)
+
+        self.pw_input_submit = Button(master, text="Create", command=self.submit_new_ring)
+        self.pw_input_submit.grid(row=3, column=1, columnspan=4)
+        return master
+
+    def load_new_struct(self, file=None):
+        '''create an empty struct and attach it to the canvas, 
+        and populate it from a file if one is given'''
+        if file is not None:
+            self.working_struct = PanawaveStruct()
+        else:
+            self.working_struct = PanawaveStruct()
+            self.working_struct.load_from_file(file)
+        return self.working_struct
+
+    def submit_new_ring(self):
+        '''validate the input and submit it to our current struct'''
+        self.working_struct.add_ring(self.pw_input_radius.get(), \
+                self.pw_input_count.get(), \
+                self.pw_input_offset.get())
+        self.working_struct.draw(self.pw_canvas)
 
 
 class RotatingPoly:
@@ -85,7 +129,7 @@ class PanawavePolygon:
         self.points = point_list
         if self.centroid is None:
             # calculate centroid
-            # this is a problematic method which is probably
+            # TODO this is a problematic method which is probably
             # only useful for rectangles
             xmean, ymean = 0, 0
             for point in point_list:
@@ -103,7 +147,7 @@ class PanawavePolygon:
         '''rotate points about centroid. expects degrees.'''
         rotated_points = []
         complexCenter = complex(self.centroid[0], self.centroid[1])
-        complex_angle = cmath.exp(radians(angle) * 1j)
+        complex_angle = exp(radians(angle) * 1j)
         for x, y in self.points:
             new_complex_point = complex_angle * \
                 (complex(x, y) - complexCenter) + complexCenter
@@ -127,7 +171,7 @@ class PanawavePolygon:
         '''rotate points about origin. expects degrees. note poly will be 
         re-oriented also unless correspondeing inverse rotate() is performed'''
         rotated_points = [] 
-        complex_angle = cmath.exp(radians(angle) * 1j)
+        complex_angle = exp(radians(angle) * 1j)
         for x, y in self.points:
             new_complex_point = complex_angle * complex(x, y)
             rotated_points.append((new_complex_point.real, new_complex_point.imag))
@@ -141,11 +185,14 @@ class PanawavePolygon:
 
 
 class StickerRing:
-    '''create and manage a ring of regularly-spaced poly objects'''    
+    '''create and manage a ring of regularly-spaced poly objects'''
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
     def __init__(self, radius, count, offsetDegrees=0, geometry=None):
+        radius = float(radius)
+        count = int(count)
+        offsetDegrees = float(offsetDegrees)
         self.sticker_list = []
         period = 360 / count
         position = 1
@@ -174,27 +221,63 @@ class PanawaveStruct:
     '''data structure for storing our StickerRing composition'''
 
     def __init__(self, *args):
+        ''''''
         self.ring_array = []
-        for arg in self.args:
-            self.ring_array.append(StickerRing(args*))
+        for arg in args:
+            self.add_ring(*args)
 
     def draw(self, canvas):
         '''plot all elements to a canvas'''
         for stickerRing in self.ring_array:
             stickerRing.draw(canvas)
 
+    # dealing with child  objects
+    def add_ring(self, *args):
+        self.ring_array.append(StickerRing(*args))
+
+
+    # File Input/Output Methods:
+
     def write_out(self, file):
-        '''write the current composition to file in a re-usable format'''
+        '''TODO write the current composition to file in a re-usable format'''
         pass
 
     def write_out_instructions(self, file):
-        '''write to file in a format (tbd) which can be used as cnc control for a 
-        plotting device'''
+        '''TODO write to file in a format (tbd) which can be used as 
+        cnc control for a plotting device'''
         pass
 
+    def load_from_file(self, file):
+        '''TODO populate the struct from the given file'''
+        pass
+
+    # High-level manipulation methods:
+
+    def orbit_randomly():
+        for ring in self.ring_array:
+            # speed specified between 0 and 1; we can apply a scale 
+            # factor to the overall speed if desired
+            ring.radial_speed = random()
+        # Linear speed, units/sec.
+        if not self.master_orbit_speed:
+            self.master_orbit_speed = 10
+        self.orbiting = True
+        self._animate_orbit()
+
+    def _draw_one_frame(canvas):
+        canvas.delete("all")
+        for ring in self.ring_array:
+            ring.rotate(master_orbit_speed * ring.radial_speed)
+        self.myPoly.draw(self.myCanvas)
+
+    def _animate_orbit(self):
+        while self.orbiting is True:
+            self._draw_one_frame()
+            self.myCanvas.after(500, self.animate)
+            i = i + 1
 
 
 if __name__ == "__main__":
-    print("initializing Panawave Umbrella Creator")
+    print("initializing Panawave Umbrella Creator...")
     our_app = PanawaveApp()
 
