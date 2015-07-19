@@ -257,7 +257,16 @@ class PanawaveStruct:
 
     # dealing with child  objects
     def add_ring(self, *args):
-        self.ring_array.append(StickerRing(*args))
+        '''create a new StickerRing using the arguments. Will attempt to
+        eval the argument first, so you can pass arithmetic expressions also'''
+        evaluated_args = []
+        for arg in args:
+            try:
+                evaluated_args.append(eval(arg))
+            except TypeError:
+                evaluate_args.append(arg)
+
+        self.ring_array.append(StickerRing(*evaluated_args))
 
 
     # File Input/Output Methods:
