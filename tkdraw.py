@@ -30,6 +30,7 @@ class PanawaveApp:
         self.tkapp = self.create_ui()
         self.working_struct = self.load_new_struct(file)
         self.working_struct.draw(self.pw_canvas)
+        self.update_list_box()
         self.tkapp.mainloop()
 
     def create_ui(self):
@@ -45,6 +46,9 @@ class PanawaveApp:
 
         # SIDE BAR:
         # struct listing
+        # TODO: Replace this with ttk.treeview, because a listbox
+        # Is completely incapable of sanely displaying tabular
+        # data as it has no access to a monospaced font!
         self.pw_list_box = Listbox(master, height=10)
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
         self.pw_lb_s = Scrollbar(master, orient=VERTICAL, \
@@ -56,16 +60,26 @@ class PanawaveApp:
         self.pw_input_radius = Entry(master)
         self.pw_input_radius.configure(width=4)
         self.pw_input_radius.grid(row=1, column=2, sticky=N)
+        self.pw_input_radius.bind("<Return>", self.submit_new_ring)
         self.pw_input_count = Entry(master)
         self.pw_input_count.configure(width=4)
         self.pw_input_count.grid(row=1, column=3, sticky=N)
+        self.pw_input_count.bind("<Return>", self.submit_new_ring)
         self.pw_input_offset = Entry(master)
         self.pw_input_offset.configure(width=4)
         self.pw_input_offset.grid(row=1, column=4, sticky=N)
+        self.pw_input_offset.bind("<Return>", self.submit_new_ring)
 
-        self.pw_input_submit = Button(master, text="Create", command=self.submit_new_ring)
+        self.pw_input_submit = Button(master, text="Create", \
+                command=self.submit_new_ring)
         self.pw_input_submit.grid(row=3, column=1, columnspan=4)
         return master
+
+    def update_list_box(self):
+        self.pw_list_box.delete(0, END)
+        for item in self.working_struct.ring_array:
+            self.pw_list_box.insert(END, item.as_string())
+
 
     def load_new_struct(self, file=None):
         '''create an empty struct and attach it to the canvas, 
@@ -75,14 +89,18 @@ class PanawaveApp:
         else:
             self.working_struct = PanawaveStruct()
             self.working_struct.load_from_file(file)
+        self.update_list_box()
         return self.working_struct
 
-    def submit_new_ring(self):
-        '''validate the input and submit it to our current struct'''
+    def submit_new_ring(self, *args):
+        '''validate the input and submit it to our current struct.
+        this function is able to receive event objects from bindings
+        but currently ignores them.'''
         self.working_struct.add_ring(self.pw_input_radius.get(), \
                 self.pw_input_count.get(), \
                 self.pw_input_offset.get())
         self.working_struct.draw(self.pw_canvas)
+        self.update_list_box()
 
 
 class RotatingPoly:
@@ -190,22 +208,28 @@ class StickerRing:
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
     def __init__(self, radius, count, offsetDegrees=0, geometry=None):
-        radius = float(radius)
-        count = int(count)
-        offsetDegrees = float(offsetDegrees)
+        self.radius = float(radius)
+        self.count = int(count)
+        self.offsetDegrees = float(offsetDegrees)
         self.sticker_list = []
-        period = 360 / count
+        period = 360 / self.count
         position = 1
         if geometry is not None:
             self.baseStickerPoly = geometry
-        for i in range(count):
+        for i in range(self.count):
             s = PanawavePolygon(self.baseStickerPoly)
             # center the centroid at canvas origin before other moves
             s.translate((0 - s.centroid[0]), (0 - s.centroid[1]))
-            s.translate(0, radius)
-            s.rotate_about_origin(offsetDegrees + period * position)
+            s.translate(0, self.radius)
+            s.rotate_about_origin(self.offsetDegrees + period * position)
             position = position + 1
             self.sticker_list.append(s)
+
+    def as_string(self):
+        '''return string representing the sticker ring. Used in the UI listbox'''
+        width = 11
+        string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(self.radius, self.count, self.offsetDegrees, width=width)
+        return string_rep
 
     def draw(self, canvas):
         '''plot stickerRing to a canvas'''
