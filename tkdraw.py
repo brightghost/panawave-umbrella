@@ -19,13 +19,13 @@ def draw_canvas(tkinstance):
 
 
 def test_poly():
-    '''sample data for testing purposes'''
+    '''sample data for testing purposes.'''
     testpoints = [(10, 10), (70, 10), (70, 70), (10, 70)]
     our_polygon = PanawavePolygon(testpoints)
     return our_polygon
 
 class PanawaveApp:
-    '''our GUI app for working with PanawaveStructs'''
+    '''our GUI app for working with PanawaveStructs.'''
     def __init__(self, file=None):
         self.tkapp = self.create_ui()
         self.working_struct = self.load_new_struct(file)
@@ -35,6 +35,7 @@ class PanawaveApp:
 
     def create_ui(self):
         master = Tk()
+        master.wm_title("Panawave Umbrella Editor")
         master.columnconfigure(0, weight=1, minsize=400)
         master.rowconfigure(0, weight=1, minsize=400)
 
@@ -82,8 +83,8 @@ class PanawaveApp:
 
 
     def load_new_struct(self, file=None):
-        '''create an empty struct and attach it to the canvas, 
-        and populate it from a file if one is given'''
+        '''create an empty struct, attach it to the canvas, 
+        and populate it from a file if one is given.'''
         if file is not None:
             self.working_struct = PanawaveStruct()
         else:
@@ -94,8 +95,8 @@ class PanawaveApp:
 
     def submit_new_ring(self, *args):
         '''validate the input and submit it to our current struct.
-        this function is able to receive event objects from bindings
-        but currently ignores them.'''
+        will accept event objects from bindings but currently ignores 
+        them.'''
         self.working_struct.add_ring(self.pw_input_radius.get(), \
                 self.pw_input_count.get(), \
                 self.pw_input_offset.get())
@@ -135,8 +136,8 @@ class RotatingPoly:
 # anyway for now going to try to reference global position via the centroid only
 
 class PanawavePolygon:
-    '''PanawavePolygon class expects a list of tuples defining an enclosed poly,
-    optionally allowing manual definition of centroid point
+    '''create a polygon from a list of tuples defining an enclosed poly,
+    optionally allowing manual definition of centroid point.
     '''
 
     def __init__(self, point_list, centroid=None):
@@ -174,7 +175,7 @@ class PanawavePolygon:
 
 
     def translate(self, xTranslate, yTranslate):
-        '''translate points by x, y value'''
+        '''translate points by x, y value.'''
         translated_points = []
         for point in self.points:
             newX , newY = (point[0] + xTranslate) , \
@@ -187,7 +188,7 @@ class PanawavePolygon:
 
     def rotate_about_origin(self, angle):
         '''rotate points about origin. expects degrees. note poly will be 
-        re-oriented also unless correspondeing inverse rotate() is performed'''
+        re-oriented also unless correspondeing inverse rotate() is performed.'''
         rotated_points = [] 
         complex_angle = exp(radians(angle) * 1j)
         for x, y in self.points:
@@ -197,13 +198,13 @@ class PanawavePolygon:
 
 
     def draw(self, canvas):
-        '''draw our polygon to the indicated canvas'''
+        '''draw our polygon to the indicated canvas.'''
         # '*self.points' unpacks the items as separate arguments 
         canvas.create_polygon(*self.points)
 
 
 class StickerRing:
-    '''create and manage a ring of regularly-spaced poly objects'''
+    '''create and manage a ring of regularly-spaced poly objects.'''
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
@@ -226,7 +227,7 @@ class StickerRing:
             self.sticker_list.append(s)
 
     def as_string(self):
-        '''return string representing the sticker ring. Used in the UI listbox'''
+        '''return string representing the StickerRing. Used in the UI listbox.'''
         width = 11
         string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(self.radius, self.count, self.offsetDegrees, width=width)
         return string_rep
@@ -237,7 +238,7 @@ class StickerRing:
             canvas.create_polygon(*sticker.points)
 
     def rotate(self, angle):
-        '''rotate the StickerRing. Use this instead of accessing offset directly'''
+        '''rotate the StickerRing. Use this instead of accessing offset directly.'''
         for sticker in self.sticker_list:
             sticker.rotate_about_origin(angle)
 
@@ -264,7 +265,7 @@ class PanawaveStruct:
             try:
                 evaluated_args.append(eval(arg))
             except TypeError:
-                evaluate_args.append(arg)
+                evaluated_args.append(arg)
 
         self.ring_array.append(StickerRing(*evaluated_args))
 
@@ -311,6 +312,6 @@ class PanawaveStruct:
 
 
 if __name__ == "__main__":
-    print("initializing Panawave Umbrella Creator...")
+    print("initializing Panawave Umbrella Editor...")
     our_app = PanawaveApp()
 
