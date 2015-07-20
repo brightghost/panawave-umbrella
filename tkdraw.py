@@ -88,7 +88,6 @@ class PanawaveApp:
         for item in self.working_struct.ring_array:
             self.pw_list_box.insert(END, item.as_string())
 
-
     def load_new_struct(self, file=None):
         '''create an empty struct, attach it to the canvas, 
         and populate it from a file if one is given.'''
@@ -113,7 +112,8 @@ class PanawaveApp:
 
 class RotatingPoly:
     '''test class for animating and rotating methods'''
-    def __init__(self, poly=None):
+
+def __init__(self, poly=None):
         if poly==None:
             self.myPoly=testPoly()
             self.myCanvas = draw_canvas()
@@ -131,16 +131,10 @@ class RotatingPoly:
             i = i + 1
 
 
-# TODO so tk has a polygon class already, not sure why I didn't use that 
-# in the first place? So really we should extend that class with our custom
-# interfaces and values; now to figure out how to do that...
-#
-# ah, that's why: its not actually a polygon class; just a  polygon generator
-# don't think tk canvas elements are implemented as objects so let's create one
-#
-# not really sure yet if polygon.point[s] should have a concept of global location,
-# or if the polygon is treated as atomic and only has one location, for the centroid...
-# anyway for now going to try to reference global position via the centroid only
+# TODO not really sure yet if polygon.point[s] should have a concept of global
+# location, or if the polygon is treated as atomic and only has one location,
+# for the centroid. anyway for now going to try to reference global position
+# via the centroid only
 
 class PanawavePolygon:
     '''create a polygon from a list of tuples defining an enclosed poly,
@@ -165,7 +159,6 @@ class PanawavePolygon:
             ymean = ymean / len(point_list)
             self.centroid = (xmean, ymean)
 
-
     # pulled out the broken trig that was here and using imaginary nums
     # i guess that's how yr sposta do it? dumb at math
 
@@ -177,9 +170,9 @@ class PanawavePolygon:
         for x, y in self.points:
             new_complex_point = complex_angle * \
                 (complex(x, y) - complexCenter) + complexCenter
-            rotated_points.append((new_complex_point.real, new_complex_point.imag))
+            rotated_points.append((new_complex_point.real, \
+                    new_complex_point.imag))
         self.points = rotated_points
-
 
     def translate(self, xTranslate, yTranslate):
         '''translate points by x, y value.'''
@@ -192,17 +185,18 @@ class PanawavePolygon:
         cX, cY = self.centroid
         self.centroid = (cX + xTranslate, cY + yTranslate)
 
-
     def rotate_about_origin(self, angle):
         '''rotate points about origin. expects degrees. note poly will be 
         re-oriented also unless correspondeing inverse rotate() is performed.'''
-        rotated_points = [] 
+        rotated_points = []
         complex_angle = exp(radians(angle) * 1j)
         for x, y in self.points:
             new_complex_point = complex_angle * complex(x, y)
-            rotated_points.append((new_complex_point.real, new_complex_point.imag))
+            rotated_points.append((new_complex_point.real, \
+                    new_complex_point.imag))
         self.points = rotated_points
-
+        self.centroid = complex(self.centroid[0], self.centroid[1]) * \
+                complex_angle
 
     def draw(self, canvas):
         '''draw our polygon to the indicated canvas.'''
@@ -245,9 +239,12 @@ class StickerRing:
             canvas.create_polygon(*sticker.points)
 
     def rotate(self, angle):
-        '''rotate the StickerRing. Use this instead of accessing offset directly.'''
+        '''rotate the StickerRing. Use this instead of accessing the offset 
+        directly.'''
         for sticker in self.sticker_list:
             sticker.rotate_about_origin(angle)
+        self.offsetDegrees = self.offsetDegrees + angle
+
 
 class PanawaveStruct:
     '''data structure for storing our StickerRing composition'''
@@ -263,7 +260,8 @@ class PanawaveStruct:
         for stickerRing in self.ring_array:
             stickerRing.draw(canvas)
 
-    # dealing with child  objects
+    # Working with child  objects:
+
     def add_ring(self, *args):
         '''create a new StickerRing using the arguments. Will attempt to
         eval the argument first, so you can pass arithmetic expressions also'''
@@ -275,7 +273,6 @@ class PanawaveStruct:
                 evaluated_args.append(arg)
 
         self.ring_array.append(StickerRing(*evaluated_args))
-
 
     # File Input/Output Methods:
 
@@ -328,6 +325,7 @@ class PanawaveStruct:
             self._draw_one_frame()
             self.myCanvas.after(500, self.animate)
             i = i + 1
+
 
 def pw_json_serializer(object):
     '''generic method for representing objects in json. will use an
