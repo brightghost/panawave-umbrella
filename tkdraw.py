@@ -2,6 +2,10 @@ from tkinter import *
 from math import degrees, radians
 from cmath import exp
 from time import sleep
+import json
+import os
+# Debugging console
+from IPython import embed
 
 def draw_canvas(tkinstance):
     # basic assumptions of the canvas: origin at center, radial
@@ -31,6 +35,8 @@ class PanawaveApp:
         self.working_struct = self.load_new_struct(file)
         self.working_struct.draw(self.pw_canvas)
         self.update_list_box()
+        # DEBUG IPython Console:
+        embed()
         self.tkapp.mainloop()
 
     def create_ui(self):
@@ -50,6 +56,7 @@ class PanawaveApp:
         # TODO: Replace this with ttk.treeview, because a listbox
         # Is completely incapable of sanely displaying tabular
         # data as it has no access to a monospaced font!
+        # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
         self.pw_list_box = Listbox(master, height=10)
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
         self.pw_lb_s = Scrollbar(master, orient=VERTICAL, \
@@ -272,16 +279,28 @@ class PanawaveStruct:
 
     # File Input/Output Methods:
 
-    def write_out(self, file):
+    def write_out(self, output_file):
         '''TODO write the current composition to file in a re-usable format'''
-        pass
+        try:
+            os.rename(output_file, output_file + "~")
+            backup_file = output_file + "~"
+        except OSError:
+            pass
+        with open(output_file, "w") as file:
+            json.dump(self, file, default=pw_json_serializer, \
+                    sort_keys=True, indent=4)
+        if os.path.isfile(output_file):
+            try:
+                os.remove(backup_file)
+            except (OSError, NameError):
+                pass
 
-    def write_out_instructions(self, file):
+    def write_out_instructions(self, output_file):
         '''TODO write to file in a format (tbd) which can be used as 
         cnc control for a plotting device'''
         pass
 
-    def load_from_file(self, file):
+    def load_from_file(self, input_file):
         '''TODO populate the struct from the given file'''
         pass
 
@@ -310,6 +329,13 @@ class PanawaveStruct:
             self.myCanvas.after(500, self.animate)
             i = i + 1
 
+def pw_json_serializer(object):
+    '''generic method for representing objects in json. will use an
+    object's _as_json method if found.'''
+    try :
+        return object._as_json()
+    except (NameError, AttributeError):
+        return object.__dict__
 
 if __name__ == "__main__":
     print("initializing Panawave Umbrella Editor...")
