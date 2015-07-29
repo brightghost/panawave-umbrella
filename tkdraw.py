@@ -4,6 +4,7 @@ from cmath import exp
 from time import sleep
 import json
 import os
+import sys
 # Debugging console
 from IPython import embed
 
@@ -35,8 +36,14 @@ class PanawaveApp:
         self.working_struct = self.load_new_struct(file)
         self.working_struct.draw(self.pw_canvas)
         self.update_list_box()
+
+        # Interface history variables
+        self.console_history = []
+        self.console_history_offset = 0
+
         # DEBUG IPython Console:
         embed()
+
         self.tkapp.mainloop()
 
     def create_ui(self):
@@ -81,6 +88,12 @@ class PanawaveApp:
         self.pw_input_submit = Button(master, text="Create", \
                 command=self.submit_new_ring)
         self.pw_input_submit.grid(row=3, column=1, columnspan=4)
+
+        self.pw_console = Entry(master)
+        self.pw_console.grid(row=4, column=1, columnspan=4)
+        self.pw_console.bind("<Return>", self.execute_console_input)
+        self.pw_console.bind("<Up>", self.navigate_console_history)
+        self.pw_console.bind("<Down>", self.navigate_console_history)
         return master
 
     def update_list_box(self):
@@ -109,11 +122,56 @@ class PanawaveApp:
         self.working_struct.draw(self.pw_canvas)
         self.update_list_box()
 
+    def execute_console_input(self, *args):
+        '''execute arbitrary commands from the console box,
+        update the UI, and clear input's contents'''
+        statement = self.pw_console.get()
+        self.console_history.append(statement)
+        try:
+            eval(statement)
+        except:
+            e = sys.exc_info()
+            print("***Console input generated the following error:***")
+            print(e)
+        self.working_struct.draw(self.pw_canvas)
+        self.update_list_box()
+        sleep(.5)
+        self.console_history_offset = 0
+        self.pw_console.delete(0, END)
+
+    def navigate_console_history(self, event):
+        '''walk through input history and replace pw_console contents
+        the offset is stored as a negative integer, used directly as
+        a reverse index. This is fine because although the list length
+        changes every time we input a command, we're not caring about
+        sabing the history index then anyway.'''
+        print("keypress received: ", event.keysym)
+        if event.keysym == "Up":
+            new_offset = self.console_history_offset - 1
+        elif event.keysym == "Down":
+            new_offset = self.console_history_offset + 1
+        print("testing offset: ", new_offset)
+        hist = self.console_history
+        hist_len = len(hist)
+        print("hist len: ", hist_len)
+        if new_offset >= 0:
+            # return to a blank slate if we arrive back at the
+            # end of the history.
+            self.pw_input_offset = 0
+            self.pw_console.delete(0, END)
+            print("reset offset to zero.")
+            return
+        if (0 > new_offset >= -hist_len):
+            self.console_history_offset = new_offset
+            self.pw_console.delete(0, END)
+            self.pw_console.insert(END, hist[new_offset])
+            print ("decided offset ", new_offset, " is valid.")
+
 
 class RotatingPoly:
     '''test class for animating and rotating methods'''
 
-def __init__(self, poly=None):
+    def __init__(self, poly=None):
         if poly==None:
             self.myPoly=testPoly()
             self.myCanvas = draw_canvas()
