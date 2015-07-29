@@ -120,6 +120,7 @@ class PanawaveApp:
                 self.pw_input_count.get(), \
                 self.pw_input_offset.get())
         self.working_struct.draw(self.pw_canvas)
+        self.pw_input_radius.focus_set()
         self.update_list_box()
 
     def execute_console_input(self, *args):
