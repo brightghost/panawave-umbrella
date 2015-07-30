@@ -1,6 +1,7 @@
 from tkinter import *
 from math import degrees, radians
 from cmath import exp
+from random import random
 from time import sleep
 import json
 import os
@@ -31,8 +32,9 @@ def test_poly():
 
 class PanawaveApp:
     '''our GUI app for working with PanawaveStructs.'''
-    def __init__(self, file=None):
-        self.tkapp = self.create_ui()
+    def __init__(self, master, file=None):
+        self.master = master
+        self.create_ui(master)
         self.working_struct = self.load_new_struct(file)
         self.working_struct.draw(self.pw_canvas)
         self.update_list_box()
@@ -46,8 +48,8 @@ class PanawaveApp:
 
         self.tkapp.mainloop()
 
-    def create_ui(self):
-        master = Tk()
+    def create_ui(self, master):
+        master = self.master
         master.wm_title("Panawave Umbrella Editor")
         master.columnconfigure(0, weight=1, minsize=400)
         master.rowconfigure(0, weight=1, minsize=400)
@@ -94,7 +96,6 @@ class PanawaveApp:
         self.pw_console.bind("<Return>", self.execute_console_input)
         self.pw_console.bind("<Up>", self.navigate_console_history)
         self.pw_console.bind("<Down>", self.navigate_console_history)
-        return master
 
     def update_list_box(self):
         self.pw_list_box.delete(0, END)
@@ -254,8 +255,9 @@ class PanawavePolygon:
             rotated_points.append((new_complex_point.real, \
                     new_complex_point.imag))
         self.points = rotated_points
-        self.centroid = complex(self.centroid[0], self.centroid[1]) * \
-                complex_angle
+        cX, cY = self.centroid
+        new_complex_centroid = complex(cX, cY) * complex_angle
+        self.centroid = new_complex_centroid.real, new_complex_centroid.imag
 
     def draw(self, canvas):
         '''draw our polygon to the indicated canvas.'''
@@ -313,6 +315,7 @@ class PanawaveStruct:
         self.ring_array = []
         for arg in args:
             self.add_ring(*args)
+        self.master_orbit_speed = 10
 
     def draw(self, canvas):
         '''plot all elements to a canvas'''
@@ -362,28 +365,39 @@ class PanawaveStruct:
 
     # High-level manipulation methods:
 
-    def orbit_randomly():
+    def orbit_randomly(self, speed=None):
         for ring in self.ring_array:
             # speed specified between 0 and 1; we can apply a scale 
             # factor to the overall speed if desired
             ring.radial_speed = random()
         # Linear speed, units/sec.
-        if not self.master_orbit_speed:
-            self.master_orbit_speed = 10
+        if speed is not None:
+            self.master_orbit_speed = speed
         self.orbiting = True
+        self._animation_index = 1
         self._animate_orbit()
 
-    def _draw_one_frame(canvas):
-        canvas.delete("all")
-        for ring in self.ring_array:
-            ring.rotate(master_orbit_speed * ring.radial_speed)
-        self.myPoly.draw(self.myCanvas)
+    def _draw_one_frame(self, index):
+        nonlocal our_app
+        working_canvas = our_app.pw_canvas
+        working_canvas.delete("all")
+        for ringnum, ring in enumerate(self.ring_array):
+            increment = self.master_orbit_speed * ring.radial_speed
+            print("Ring ", ringnum, " position at start: ", ring.offsetDegrees)
+            print("Rotating ring ", ringnum, " by increment ", increment)
+            ring.rotate(increment)
+            print("Ring ", ringnum, " position after rotation: ", ring.offsetDegrees)
+        self.draw(working_canvas)
 
     def _animate_orbit(self):
-        while self.orbiting is True:
-            self._draw_one_frame()
-            self.myCanvas.after(500, self.animate)
-            i = i + 1
+        '''this is a mess. we're functioning without any arguments because
+        tk's callback won't pass us any, so the canvas is baked in. but we're
+        accepting an arbitrary canvas in th related functions above, and
+        accepting a self reference when called from orbit_randomly.'''
+        if self.orbiting is True:
+            self._draw_one_frame(self._animation_index)
+            self._animation_index = self.animation_index + 1
+            self.after(500, self._animate_orbit)
 
 
 def pw_json_serializer(object):
@@ -396,5 +410,7 @@ def pw_json_serializer(object):
 
 if __name__ == "__main__":
     print("initializing Panawave Umbrella Editor...")
-    our_app = PanawaveApp()
+    master = Tk()
+    global our_app
+    our_app = PanawaveApp(master)
 
