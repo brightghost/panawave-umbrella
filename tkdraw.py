@@ -58,7 +58,7 @@ class PanawaveApp:
         self.pw_canvas = draw_canvas(master)
         # position canvas origin at center
         self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
-        self.pw_canvas.grid(row=0, column=0, rowspan=6, sticky=(N,E,S,W))
+        self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
 
         # SIDE BAR:
         # struct listing
@@ -68,31 +68,55 @@ class PanawaveApp:
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
         self.pw_list_box = Listbox(master, height=10)
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
-        self.pw_lb_s = Scrollbar(master, orient=VERTICAL, \
+        self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
                 command=self.pw_list_box.yview)
         self.pw_lb_s.grid(row=0, column=5, sticky=(N,S))
         self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
 
-        # ring attribute entry
+        # ring attribute sliders
+        self.pw_slider_radius = Scale(master, orient=VERTICAL, length=120,
+                from_=200.0, to=1.0, 
+                resolution=-1, command=self.update_active_ring_radius)
+        self.pw_slider_radius.grid(row=1, column=2)
+        self.pw_slider_count = Scale(master, orient=VERTICAL, length=120,
+                from_=50.0, to=1.0,
+                command=self.update_active_ring_count)
+        self.pw_slider_count.grid(row=1, column=3)
+        self.pw_slider_offset = Scale(master, orient=VERTICAL, length=120,
+                from_=360.0, to=0.0,
+                command=self.update_active_ring_offset)
+        self.pw_slider_offset.grid(row=1, column=4)
+
+        # ring attribute entry boxes
         self.pw_input_radius = Entry(master)
         self.pw_input_radius.configure(width=4)
-        self.pw_input_radius.grid(row=1, column=2, sticky=N)
+        self.pw_input_radius.grid(row=2, column=2, sticky=N)
         self.pw_input_radius.bind("<Return>", self.submit_new_ring)
         self.pw_input_count = Entry(master)
         self.pw_input_count.configure(width=4)
-        self.pw_input_count.grid(row=1, column=3, sticky=N)
+        self.pw_input_count.grid(row=2, column=3, sticky=N)
         self.pw_input_count.bind("<Return>", self.submit_new_ring)
         self.pw_input_offset = Entry(master)
         self.pw_input_offset.configure(width=4)
-        self.pw_input_offset.grid(row=1, column=4, sticky=N)
+        self.pw_input_offset.grid(row=2, column=4, sticky=N)
         self.pw_input_offset.bind("<Return>", self.submit_new_ring)
 
-        self.pw_input_submit = Button(master, text="Create", \
+        # new ring submit button
+        self.pw_input_submit = Button(master, text="Create",
                 command=self.submit_new_ring)
         self.pw_input_submit.grid(row=3, column=1, columnspan=4)
 
+        # animation control buttons
+        self.pw_orbit_begin = Button(master, text="Orbit",
+                command=self.orbit_randomly)
+        self.pw_orbit_begin.grid(row=4, column=2)
+        self.pw_orbit_stop = Button(master, text="Stop",
+                command=self.stop_animation)
+        self.pw_orbit_stop.grid(row=4, column=3)
+
+        # console
         self.pw_console = Entry(master)
-        self.pw_console.grid(row=4, column=1, columnspan=4)
+        self.pw_console.grid(row=4, column=0, columnspan=1, sticky=(W,E))
         self.pw_console.bind("<Return>", self.execute_console_input)
         self.pw_console.bind("<Up>", self.navigate_console_history)
         self.pw_console.bind("<Down>", self.navigate_console_history)
@@ -101,6 +125,15 @@ class PanawaveApp:
         self.pw_list_box.delete(0, END)
         for item in self.working_struct.ring_array:
             self.pw_list_box.insert(END, item.as_string())
+
+    def update_active_ring_radius(self, rad):
+        pass
+
+    def update_active_ring_count(self, count):
+        pass
+
+    def update_active_ring_offset(self, deg):
+        pass
 
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas, 
@@ -123,6 +156,12 @@ class PanawaveApp:
         self.working_struct.draw(self.pw_canvas)
         self.pw_input_radius.focus_set()
         self.update_list_box()
+
+    def stop_animation(self):
+        self.working_struct.stop_animation()
+
+    def orbit_randomly(self):
+        self.working_struct.orbit_randomly()
 
     def execute_console_input(self, *args):
         '''execute arbitrary commands from the console box,
@@ -323,6 +362,7 @@ class PanawaveStruct:
         # you can set this yourself if wanted; can also pass it as an argument
         # to any of the animation methods.
         self.master_orbit_speed = 1.5
+        self.animating = False
 
     def draw(self, target_canvas=None):
         '''plot all elements to a canvas'''
@@ -374,6 +414,9 @@ class PanawaveStruct:
 
     # High-level manipulation methods:
 
+    def stop_animation(self):
+        self.animating = False
+
     def orbit_randomly(self, canvas=None, speed=None):
         for ring in self.ring_array:
             # speed specified between 0 and 1; we can apply a scale 
@@ -384,7 +427,7 @@ class PanawaveStruct:
             canvas = self.canvas
         if speed is not None:
             self.master_orbit_speed = speed
-        self.orbiting = True
+        self.animating = True
         self._animation_index = 1
         self._animate_orbit()
 
@@ -406,7 +449,7 @@ class PanawaveStruct:
         allllll the way down. but we're
         accepting an arbitrary canvas in the related functions above, and
         accepting a self reference when called from orbit_randomly.'''
-        if self.orbiting is True:
+        if self.animating is True:
             self._draw_one_frame(self.canvas, self._animation_index)
             self._animation_index = self._animation_index + 1
             self.canvas.after(100, self._animate_orbit)
