@@ -35,8 +35,8 @@ class PanawaveApp:
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
-        self.working_struct = self.load_new_struct(file)
-        self.working_struct.draw(self.pw_canvas)
+        self.working_struct = self.load_new_struct(file, target_canvas=self.pw_canvas)
+        self.working_struct.draw()
         self.update_list_box()
 
         # Interface history variables
@@ -102,13 +102,13 @@ class PanawaveApp:
         for item in self.working_struct.ring_array:
             self.pw_list_box.insert(END, item.as_string())
 
-    def load_new_struct(self, file=None):
+    def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas, 
         and populate it from a file if one is given.'''
         if file is not None:
-            self.working_struct = PanawaveStruct()
+            self.working_struct = PanawaveStruct(canvas=target_canvas)
         else:
-            self.working_struct = PanawaveStruct()
+            self.working_struct = PanawaveStruct(canvas=target_canvas)
             self.working_struct.load_from_file(file)
         self.update_list_box()
         return self.working_struct
@@ -310,17 +310,26 @@ class StickerRing:
 class PanawaveStruct:
     '''data structure for storing our StickerRing composition'''
 
-    def __init__(self, *args):
-        ''''''
+    def __init__(self, *args, tkinstance=None, canvas=None):
+        '''We need to pass a reference to the canvas to store
+        locally in order to use the tk .wait callbacks in animation'''
         self.ring_array = []
         for arg in args:
             self.add_ring(*args)
-        self.master_orbit_speed = 10
+        if tkinstance is not None:
+            self.tkinstance=tkinstance
+        if canvas is not None:
+            self.canvas = canvas
+        # you can set this yourself if wanted; can also pass it as an argument
+        # to any of the animation methods.
+        self.master_orbit_speed = 1.5
 
-    def draw(self, canvas):
+    def draw(self, target_canvas=None):
         '''plot all elements to a canvas'''
+        if target_canvas is None:
+            target_canvas = self.canvas
         for stickerRing in self.ring_array:
-            stickerRing.draw(canvas)
+            stickerRing.draw(target_canvas)
 
     # Working with child  objects:
 
@@ -365,39 +374,42 @@ class PanawaveStruct:
 
     # High-level manipulation methods:
 
-    def orbit_randomly(self, speed=None):
+    def orbit_randomly(self, canvas=None, speed=None):
         for ring in self.ring_array:
             # speed specified between 0 and 1; we can apply a scale 
             # factor to the overall speed if desired
             ring.radial_speed = random()
         # Linear speed, units/sec.
+        if canvas is None:
+            canvas = self.canvas
         if speed is not None:
             self.master_orbit_speed = speed
         self.orbiting = True
         self._animation_index = 1
         self._animate_orbit()
 
-    def _draw_one_frame(self, index):
-        nonlocal our_app
-        working_canvas = our_app.pw_canvas
+    def _draw_one_frame(self, canvas, index):
+        working_canvas = canvas
         working_canvas.delete("all")
         for ringnum, ring in enumerate(self.ring_array):
             increment = self.master_orbit_speed * ring.radial_speed
             print("Ring ", ringnum, " position at start: ", ring.offsetDegrees)
             print("Rotating ring ", ringnum, " by increment ", increment)
             ring.rotate(increment)
-            print("Ring ", ringnum, " position after rotation: ", ring.offsetDegrees)
+            print("Ring ", ringnum, \
+                    " position after rotation: ", ring.offsetDegrees)
         self.draw(working_canvas)
 
     def _animate_orbit(self):
         '''this is a mess. we're functioning without any arguments because
-        tk's callback won't pass us any, so the canvas is baked in. but we're
-        accepting an arbitrary canvas in th related functions above, and
+        tk's callback won't pass us any, so the canvas has to be passed 
+        allllll the way down. but we're
+        accepting an arbitrary canvas in the related functions above, and
         accepting a self reference when called from orbit_randomly.'''
         if self.orbiting is True:
-            self._draw_one_frame(self._animation_index)
-            self._animation_index = self.animation_index + 1
-            self.after(500, self._animate_orbit)
+            self._draw_one_frame(self.canvas, self._animation_index)
+            self._animation_index = self._animation_index + 1
+            self.canvas.after(100, self._animate_orbit)
 
 
 def pw_json_serializer(object):
