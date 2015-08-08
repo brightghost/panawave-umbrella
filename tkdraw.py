@@ -31,11 +31,15 @@ def test_poly():
     return our_polygon
 
 class PanawaveApp:
-    '''our GUI app for working with PanawaveStructs.'''
+    '''our GUI app for working with PanawaveStructs.
+    Requires reference to a Tk instance, and optionally a
+    file to load initially.'''
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
-        self.working_struct = self.load_new_struct(file, target_canvas=self.pw_canvas)
+        self.working_struct = self.load_new_struct(file, 
+                target_canvas=self.pw_canvas)
+        self.selected_ring = None
         self.working_struct.draw()
         self.update_list_box()
 
@@ -87,17 +91,29 @@ class PanawaveApp:
                 command=self.update_active_ring_offset)
         self.pw_slider_offset.grid(row=1, column=4)
 
+        def _update_slider_radius(event):
+            self.pw_slider_radius.set(self.pw_input_radius.get())
+
+        def _update_slider_count(event):
+            self.pw_slider_count.set(self.pw_input_count.get())
+
+        def _update_slider_offset(event):
+            self.pw_slider_offset.set(self.pw_input_offset.get())
+
         # ring attribute entry boxes
         self.pw_input_radius = Entry(master)
         self.pw_input_radius.configure(width=4)
+        self.pw_input_radius.bind("<FocusOut>", _update_slider_radius)
         self.pw_input_radius.grid(row=2, column=2, sticky=N)
         self.pw_input_radius.bind("<Return>", self.submit_new_ring)
         self.pw_input_count = Entry(master)
         self.pw_input_count.configure(width=4)
+        self.pw_input_count.bind("<FocusOut>", _update_slider_count)
         self.pw_input_count.grid(row=2, column=3, sticky=N)
         self.pw_input_count.bind("<Return>", self.submit_new_ring)
         self.pw_input_offset = Entry(master)
         self.pw_input_offset.configure(width=4)
+        self.pw_input_offset.bind("<FocusOut>", _update_slider_offset)
         self.pw_input_offset.grid(row=2, column=4, sticky=N)
         self.pw_input_offset.bind("<Return>", self.submit_new_ring)
 
@@ -110,9 +126,11 @@ class PanawaveApp:
         self.pw_orbit_begin = Button(master, text="Orbit",
                 command=self.orbit_randomly)
         self.pw_orbit_begin.grid(row=4, column=2)
-        self.pw_orbit_stop = Button(master, text="Stop",
-                command=self.stop_animation)
-        self.pw_orbit_stop.grid(row=4, column=3)
+        # set width manually so layout doesn't jump around when we
+        # change the text
+        self.pw_orbit_toggle = Button(master, text="Stop",
+                command=self.toggle_animation, width=5)
+        self.pw_orbit_toggle.grid(row=4, column=3)
 
         # console
         self.pw_console = Entry(master)
@@ -126,14 +144,32 @@ class PanawaveApp:
         for item in self.working_struct.ring_array:
             self.pw_list_box.insert(END, item.as_string())
 
+    # Sliders modify selected ring's attributes in realtime;
+    # if no ring is selected they just adjust the input value
+    # and wait for the 'Submit' button to do anything with them.
+
     def update_active_ring_radius(self, rad):
-        pass
+        if self.selected_ring is not None:
+            self.selected_ring.radius = rad
+        else:
+            self.pw_input_radius.delete(0, END)
+            self.pw_input_radius.insert(0, rad)
 
     def update_active_ring_count(self, count):
-        pass
+        if self.selected_ring is not None:
+            self.selected_ring.count = count
+            self.selected_ring.draw(self.pw_canvas)
+        else:
+            self.pw_input_count.delete(0, END)
+            self.pw_input_count.insert(0, count)
 
     def update_active_ring_offset(self, deg):
-        pass
+        if self.selected_ring is not None:
+            self.selected_ring.offset = deg
+            self.selected_ring.draw(self.pw_canvas)
+        else:
+            self.pw_input_offset.delete(0, END)
+            self.pw_input_offset.insert(0, deg)
 
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas, 
@@ -157,8 +193,13 @@ class PanawaveApp:
         self.pw_input_radius.focus_set()
         self.update_list_box()
 
-    def stop_animation(self):
-        self.working_struct.stop_animation()
+    def toggle_animation(self):
+        if self.working_struct.animating is True:
+            self.working_struct.stop_animation()
+            self.pw_orbit_toggle.configure(text="Start")
+        else:
+            self.working_struct.orbit_randomly()
+            self.pw_orbit_toggle.configure(text="Stop")
 
     def orbit_randomly(self):
         self.working_struct.orbit_randomly()
@@ -185,7 +226,7 @@ class PanawaveApp:
         the offset is stored as a negative integer, used directly as
         a reverse index. This is fine because although the list length
         changes every time we input a command, we're not caring about
-        sabing the history index then anyway.'''
+        saving the history index then anyway.'''
         print("keypress received: ", event.keysym)
         if event.keysym == "Up":
             new_offset = self.console_history_offset - 1
