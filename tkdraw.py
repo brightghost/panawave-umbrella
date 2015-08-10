@@ -202,6 +202,8 @@ class PanawaveApp:
             self.pw_orbit_toggle.configure(text="Stop")
 
     def orbit_randomly(self):
+        '''TODO refactor so one method can work with multiple animations'''
+        self.pw_orbit_toggle.configure(text="Stop")
         self.working_struct.orbit_randomly()
 
     def execute_console_input(self, *args):
