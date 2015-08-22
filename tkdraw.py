@@ -33,7 +33,31 @@ def test_poly():
 class PanawaveApp:
     '''our GUI app for working with PanawaveStructs.
     Requires reference to a Tk instance, and optionally a
-    file to load initially.'''
+    file to load initially.
+
+    Window layout: (via asciiflow.com)
+                                                       
+     0                        1 2 3 4                  
+                                                       
+     +-------------------------------+ 0 List          
+     |                        |     ||   List          
+     |                        |     ||                 
+     |                        |     ||                 
+     |                        |     ||                 
+     |                        +------+ 1               
+     |                        | | |  |   Sliders       
+     |                        | | |  |                 
+     |                        +------+ 2               
+     |                        | | |  |   Input         
+     |                        +------+ 3               
+     |                        | | |  |   Anim. methods 
+     +-------------------------------+ 4               
+     |                        |      |   Toggle anim.  
+     +-------------------------------+                 
+                                                       
+      Console                         
+                 
+    '''
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
@@ -74,22 +98,22 @@ class PanawaveApp:
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
         self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
                 command=self.pw_list_box.yview)
-        self.pw_lb_s.grid(row=0, column=5, sticky=(N,S))
+        self.pw_lb_s.grid(row=0, column=4, sticky=(N,S))
         self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
 
         # ring attribute sliders
         self.pw_slider_radius = Scale(master, orient=VERTICAL, length=120,
                 from_=200.0, to=1.0, 
                 resolution=-1, command=self.update_active_ring_radius)
-        self.pw_slider_radius.grid(row=1, column=2)
+        self.pw_slider_radius.grid(row=1, column=1)
         self.pw_slider_count = Scale(master, orient=VERTICAL, length=120,
                 from_=50.0, to=1.0,
                 command=self.update_active_ring_count)
-        self.pw_slider_count.grid(row=1, column=3)
+        self.pw_slider_count.grid(row=1, column=2)
         self.pw_slider_offset = Scale(master, orient=VERTICAL, length=120,
                 from_=360.0, to=0.0,
                 command=self.update_active_ring_offset)
-        self.pw_slider_offset.grid(row=1, column=4)
+        self.pw_slider_offset.grid(row=1, column=3)
 
         def _update_slider_radius(event):
             self.pw_slider_radius.set(self.pw_input_radius.get())
@@ -104,17 +128,17 @@ class PanawaveApp:
         self.pw_input_radius = Entry(master)
         self.pw_input_radius.configure(width=4)
         self.pw_input_radius.bind("<FocusOut>", _update_slider_radius)
-        self.pw_input_radius.grid(row=2, column=2, sticky=N)
+        self.pw_input_radius.grid(row=2, column=1, sticky=N)
         self.pw_input_radius.bind("<Return>", self.submit_new_ring)
         self.pw_input_count = Entry(master)
         self.pw_input_count.configure(width=4)
         self.pw_input_count.bind("<FocusOut>", _update_slider_count)
-        self.pw_input_count.grid(row=2, column=3, sticky=N)
+        self.pw_input_count.grid(row=2, column=2, sticky=N)
         self.pw_input_count.bind("<Return>", self.submit_new_ring)
         self.pw_input_offset = Entry(master)
         self.pw_input_offset.configure(width=4)
         self.pw_input_offset.bind("<FocusOut>", _update_slider_offset)
-        self.pw_input_offset.grid(row=2, column=4, sticky=N)
+        self.pw_input_offset.grid(row=2, column=3, sticky=N)
         self.pw_input_offset.bind("<Return>", self.submit_new_ring)
 
         # new ring submit button
@@ -122,19 +146,29 @@ class PanawaveApp:
                 command=self.submit_new_ring)
         self.pw_input_submit.grid(row=3, column=1, columnspan=4)
 
-        # animation control buttons
-        self.pw_orbit_begin = Button(master, text="Orbit",
-                command=self.orbit_randomly)
-        self.pw_orbit_begin.grid(row=4, column=2)
+        # animation control buttons, row 1 (on/off)
         # set width manually so layout doesn't jump around when we
         # change the text
         self.pw_orbit_toggle = Button(master, text="Stop",
                 command=self.toggle_animation, width=5)
-        self.pw_orbit_toggle.grid(row=4, column=3)
+        self.pw_orbit_toggle.grid(row=4, column=1)
+
+        # animation control buttons, row 2 (anim methods)
+        self.pw_orbit_begin_random = Button(master, text="Random",
+                width=5, command=self.orbit_randomly)
+        self.pw_orbit_begin_random.grid(row=5, column=1)
+        self.pw_orbit_begin_linear = Button(master, text="Linear",
+                width=5, command=self.orbit_linearly)
+        self.pw_orbit_begin_linear.grid(row=5, column=2)
+
+        self.pw_orbit_begin_inverse_linear = Button(master,
+                text="Inverse Linear", width=5,
+                command=self.orbit_inverse_linearly)
+        self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
 
         # console
         self.pw_console = Entry(master)
-        self.pw_console.grid(row=4, column=0, columnspan=1, sticky=(W,E))
+        self.pw_console.grid(row=5, column=0, columnspan=1, sticky=(W,E))
         self.pw_console.bind("<Return>", self.execute_console_input)
         self.pw_console.bind("<Up>", self.navigate_console_history)
         self.pw_console.bind("<Down>", self.navigate_console_history)
@@ -202,9 +236,16 @@ class PanawaveApp:
             self.pw_orbit_toggle.configure(text="Stop")
 
     def orbit_randomly(self):
-        '''TODO refactor so one method can work with multiple animations'''
         self.pw_orbit_toggle.configure(text="Stop")
-        self.working_struct.orbit_randomly()
+        self.working_struct.orbit(method="random")
+
+    def orbit_linearly(self):
+        self.pw_orbit_toggle.configure(text="Stop")
+        self.working_struct.orbit(method="linear")
+
+    def orbit_inverse_linearly(self):
+        self.pw_orbit_toggle.configure(text="Stop")
+        self.working_struct.orbit(method="inverse-linear")
 
     def execute_console_input(self, *args):
         '''execute arbitrary commands from the console box,
@@ -392,7 +433,7 @@ class StickerRing:
 class PanawaveStruct:
     '''data structure for storing our StickerRing composition'''
 
-    def __init__(self, *args, tkinstance=None, canvas=None):
+    def __init__(self, tkinstance=None, canvas=None, *args):
         '''We need to pass a reference to the canvas to store
         locally in order to use the tk .wait callbacks in animation'''
         self.ring_array = []
@@ -460,11 +501,21 @@ class PanawaveStruct:
     def stop_animation(self):
         self.animating = False
 
-    def orbit_randomly(self, canvas=None, speed=None):
-        for ring in self.ring_array:
-            # speed specified between 0 and 1; we can apply a scale 
-            # factor to the overall speed if desired
-            ring.radial_speed = random()
+    def orbit(self, method="random", canvas=None, speed=None):
+        ''' Several orbit methods are defined here. All will assign a
+        speed value between 0 and 1 to each ring which is scaled
+        by the master speed in the animation method below.'''
+        if method =="random":
+            for ring in self.ring_array:
+                ring.radial_speed = random()
+        elif method == "linear":
+            speed_step = 1 / len(self.ring_array)
+            for index, ring in enumerate(self.ring_array):
+                ring.radial_speed = speed_step * index
+        elif method == "inverse-linear":
+            speed_step = 1 / len(self.ring_array)
+            for index, ring in enumerate(self.ring_array):
+                ring.radial_speed = 1 - (speed_step + index) 
         # Linear speed, units/sec.
         if canvas is None:
             canvas = self.canvas
