@@ -505,6 +505,10 @@ class PanawaveStruct:
         ''' Several orbit methods are defined here. All will assign a
         speed value between 0 and 1 to each ring which is scaled
         by the master speed in the animation method below.'''
+        if len(self.ring_array) is 0:
+            # just return if the array is empty instead of catching all
+            # the divide by zero errors below
+            return
         if method =="random":
             for ring in self.ring_array:
                 ring.radial_speed = random()
