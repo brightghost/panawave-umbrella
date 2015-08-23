@@ -61,7 +61,7 @@ class PanawaveApp:
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
-        self.working_struct = self.load_new_struct(file, 
+        self.working_struct = self.load_new_struct(file,
                 target_canvas=self.pw_canvas)
         self.selected_ring = None
         self.working_struct.draw()
@@ -103,7 +103,7 @@ class PanawaveApp:
 
         # ring attribute sliders
         self.pw_slider_radius = Scale(master, orient=VERTICAL, length=120,
-                from_=200.0, to=1.0, 
+                from_=200.0, to=1.0,
                 resolution=-1, command=self.update_active_ring_radius)
         self.pw_slider_radius.grid(row=1, column=1)
         self.pw_slider_count = Scale(master, orient=VERTICAL, length=120,
@@ -206,7 +206,7 @@ class PanawaveApp:
             self.pw_input_offset.insert(0, deg)
 
     def load_new_struct(self, file=None, target_canvas=None):
-        '''create an empty struct, attach it to the canvas, 
+        '''create an empty struct, attach it to the canvas,
         and populate it from a file if one is given.'''
         if file is not None:
             self.working_struct = PanawaveStruct(canvas=target_canvas)
@@ -218,7 +218,7 @@ class PanawaveApp:
 
     def submit_new_ring(self, *args):
         '''validate the input and submit it to our current struct.
-        will accept event objects from bindings but currently ignores 
+        will accept event objects from bindings but currently ignores
         them.'''
         self.working_struct.add_ring(self.pw_input_radius.get(), \
                 self.pw_input_count.get(), \
@@ -369,7 +369,7 @@ class PanawavePolygon:
         self.centroid = (cX + xTranslate, cY + yTranslate)
 
     def rotate_about_origin(self, angle):
-        '''rotate points about origin. expects degrees. note poly will be 
+        '''rotate points about origin. expects degrees. note poly will be
         re-oriented also unless correspondeing inverse rotate() is performed.'''
         rotated_points = []
         complex_angle = exp(radians(angle) * 1j)
@@ -423,7 +423,7 @@ class StickerRing:
             canvas.create_polygon(*sticker.points)
 
     def rotate(self, angle):
-        '''rotate the StickerRing. Use this instead of accessing the offset 
+        '''rotate the StickerRing. Use this instead of accessing the offset
         directly.'''
         for sticker in self.sticker_list:
             sticker.rotate_about_origin(angle)
@@ -479,7 +479,7 @@ class PanawaveStruct:
         except OSError:
             pass
         with open(output_file, "w") as file:
-            json.dump(self, file, default=pw_json_serializer, \
+            json.dump(self, file, default=pw_json_serializer,
                     sort_keys=True, indent=4)
         if os.path.isfile(output_file):
             try:
@@ -488,7 +488,7 @@ class PanawaveStruct:
                 pass
 
     def write_out_instructions(self, output_file):
-        '''TODO write to file in a format (tbd) which can be used as 
+        '''TODO write to file in a format (tbd) which can be used as
         cnc control for a plotting device'''
         pass
 
@@ -515,7 +515,7 @@ class PanawaveStruct:
         elif method == "inverse-linear":
             speed_step = 1 / len(self.ring_array)
             for index, ring in enumerate(self.ring_array):
-                ring.radial_speed = 1 - (speed_step + index) 
+                ring.radial_speed = 1 - (speed_step + index)
         # Linear speed, units/sec.
         if canvas is None:
             canvas = self.canvas
@@ -539,7 +539,7 @@ class PanawaveStruct:
 
     def _animate_orbit(self):
         '''this is a mess. we're functioning without any arguments because
-        tk's callback won't pass us any, so the canvas has to be passed 
+        tk's callback won't pass us any, so the canvas has to be passed
         allllll the way down. but we're
         accepting an arbitrary canvas in the related functions above, and
         accepting a self reference when called from orbit_randomly.'''
