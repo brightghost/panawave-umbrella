@@ -509,7 +509,7 @@ class PanawaveStruct:
             # just return if the array is empty instead of catching all
             # the divide by zero errors below
             return
-        if method =="random":
+        if method == "random":
             for ring in self.ring_array:
                 ring.radial_speed = random()
         elif method == "linear":
@@ -519,7 +519,7 @@ class PanawaveStruct:
         elif method == "inverse-linear":
             speed_step = 1 / len(self.ring_array)
             for index, ring in enumerate(self.ring_array):
-                ring.radial_speed = 1 - (speed_step + index)
+                ring.radial_speed = speed_step * (len(self.ring_array) - index)
         # Linear speed, units/sec.
         if canvas is None:
             canvas = self.canvas
