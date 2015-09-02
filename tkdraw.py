@@ -484,6 +484,16 @@ class PanawaveStruct:
         with open(output_file, "w") as file:
             json.dump(self.ring_array, file, default=pw_json_serializer,
                     sort_keys=True, indent=4)
+            # other things we may want to include:
+            # app state: selected struct, undo history?
+            # selected anim method
+            # input field contents, slider positions?
+            # step var value, once implemented (for eval'd inputs)
+            # target canvas? probably not, we should just let the app decide
+            #    where to draw it when opening
+            # member variables:
+            # self.master_orbit_speed
+            # self.animating: just let this be set to false on load
         if os.path.isfile(output_file):
             try:
                 os.remove(backup_file)
