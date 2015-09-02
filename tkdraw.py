@@ -465,6 +465,7 @@ class PanawaveStruct:
             try:
                 evaluated_args.append(eval(arg))
             except TypeError:
+
                 evaluated_args.append(arg)
 
         self.ring_array.append(StickerRing(*evaluated_args))
@@ -479,7 +480,7 @@ class PanawaveStruct:
         except OSError:
             pass
         with open(output_file, "w") as file:
-            json.dump(self, file, default=pw_json_serializer,
+            json.dump(self.ring_array, file, default=pw_json_serializer,
                     sort_keys=True, indent=4)
         if os.path.isfile(output_file):
             try:
