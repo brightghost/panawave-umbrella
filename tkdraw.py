@@ -465,7 +465,9 @@ class PanawaveStruct:
             try:
                 evaluated_args.append(eval(arg))
             except TypeError:
-
+                # TODO probbably not particularly useful to pass input that 
+                # fails an eval straight into our list? or did I do this to
+                # handle strings or something?
                 evaluated_args.append(arg)
 
         self.ring_array.append(StickerRing(*evaluated_args))
