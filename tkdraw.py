@@ -148,10 +148,12 @@ class PanawaveApp:
 
         # animation control buttons, row 1 (on/off)
         # set width manually so layout doesn't jump around when we
-        # change the text
-        self.pw_orbit_toggle = Button(master, text="Stop",
+        # change the text`
+        self.pw_animate_label = Label(master, text="Animate:")
+        self.pw_animate_label.grid(row=4, column=1, columnspan=2, sticky=W)
+        self.pw_orbit_toggle = Button(master, text="Start",
                 command=self.toggle_animation, width=5)
-        self.pw_orbit_toggle.grid(row=4, column=1)
+        self.pw_orbit_toggle.grid(row=4, column=3, columnspan=2)
 
         # animation control buttons, row 2 (anim methods)
         self.pw_orbit_begin_random = Button(master, text="Random",
@@ -164,7 +166,7 @@ class PanawaveApp:
         self.pw_orbit_begin_inverse_linear = Button(master,
                 text="Inverse Linear", width=5,
                 command=self.orbit_inverse_linearly)
-        self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
+        self.pw_orbit_begin_inverse_linear.grid(row=5, column=3, columnspan=2)
 
         # console
         self.pw_console = Entry(master)
@@ -232,7 +234,7 @@ class PanawaveApp:
             self.working_struct.stop_animation()
             self.pw_orbit_toggle.configure(text="Start")
         else:
-            self.working_struct.orbit_randomly()
+            self.working_struct.orbit(method="random")
             self.pw_orbit_toggle.configure(text="Stop")
 
     def orbit_randomly(self):
@@ -414,7 +416,8 @@ class StickerRing:
     def as_string(self):
         '''return string representing the StickerRing. Used in the UI listbox.'''
         width = 11
-        string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(self.radius, self.count, self.offsetDegrees, width=width)
+        string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(
+                self.radius, self.count, self.offsetDegrees, width=width)
         return string_rep
 
     def draw(self, canvas):
