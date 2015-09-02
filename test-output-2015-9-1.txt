@@ -1,1 +1,0 @@
-{"master_orbit_speed": 1.5, "canvas": {"widgetName": "canvas", "_w": ".44759440", "_tclCommands": [], "_name": "44759440", "master": {"_tclCommands": ["tkerror", "exit", "42789992destroy"], "master": null, "children": {"44759440": 
