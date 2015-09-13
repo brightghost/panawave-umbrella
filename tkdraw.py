@@ -428,6 +428,8 @@ class StickerRing:
         for sticker in self.sticker_list:
             sticker.rotate_about_origin(angle)
         self.offsetDegrees = self.offsetDegrees + angle
+        if self.offsetDegrees > 360:
+            self.offsetDegrees = self.offsetDegrees - 360
 
 
 class PanawaveStruct:
