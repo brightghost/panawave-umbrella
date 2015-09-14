@@ -414,7 +414,8 @@ class StickerRing:
     def as_string(self):
         '''return string representing the StickerRing. Used in the UI listbox.'''
         width = 11
-        string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(self.radius, self.count, self.offsetDegrees, width=width)
+        string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(
+                self.radius, self.count, self.offsetDegrees, width=width)
         return string_rep
 
     def draw(self, canvas):
@@ -484,7 +485,9 @@ class PanawaveStruct:
         except OSError:
             pass
         with open(output_file, "w") as file:
-            json.dump(self.ring_array, file, default=pw_json_serializer,
+            # this works, but is not formatting things the way we want.
+            for item in self.master_orbit_speed, self.ring_array:
+                json.dump(item, file, default=pw_json_serializer,
                     sort_keys=True, indent=4)
             # other things we may want to include:
             # app state: selected struct, undo history?
