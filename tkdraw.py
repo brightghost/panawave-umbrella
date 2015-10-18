@@ -56,7 +56,6 @@ class PanawaveApp:
      +-------------------------------+                 
                                                        
       Console                         
-                 
     '''
     def __init__(self, master, file=None):
         self.master = master
