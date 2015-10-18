@@ -446,10 +446,16 @@ class PanawaveStruct:
             self.tkinstance=tkinstance
         if canvas is not None:
             self.canvas = canvas
-        # you can set this yourself if wanted; can also pass it as an argument
-        # to any of the animation methods.
-        self.master_orbit_speed = 1.5
-        self.animating = False
+        # This dictionary stores any state variables which we want to persist
+        # along with saved documents. Only the contents of this dictionary and
+        # the ring_array are currently written to file.
+        self.persistent_state = {
+            # master scaler for animations. can also be modified by
+            # passing as argument to any of the animation methods.
+            "master_orbit_speed": 1.5,
+            # TODO this should move to an ephemeral_state array
+            "animating": False
+            }
 
     def draw(self, target_canvas=None):
         '''plot all elements to a canvas'''
@@ -485,10 +491,10 @@ class PanawaveStruct:
         except OSError:
             pass
         with open(output_file, "w") as file:
-            # this works, but is not formatting things the way we want.
-            for item in self.master_orbit_speed, self.ring_array:
+            for item in self.persistent_state:
                 json.dump(item, file, default=pw_json_serializer,
                     sort_keys=True, indent=4)
+            json.dump({"ring_array": self.ring_array}, file, default=pw_json_serializer, sort_keys=True, indent=4)
             # other things we may want to include:
             # app state: selected struct, undo history?
             # selected anim method
