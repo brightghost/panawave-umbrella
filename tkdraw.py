@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter.filedialog import askopenfilename, asksaveasfilename
 from math import degrees, radians
 from cmath import exp
 from random import random
@@ -85,7 +86,7 @@ class PanawaveApp:
         self.pw_menu_bar = Menu(master)
         self.pw_file_menu = Menu(self.pw_menu_bar, tearoff=0)
         self.pw_file_menu.add_command(label="Open...", command=self.open_file)
-        self.pw_file_menu.add_command(label="Save...", command=self.save_file)
+        self.pw_file_menu.add_command(label="Save as...", command=self.save_file)
         self.pw_file_menu.add_separator()
         self.pw_file_menu.add_command(label="Quit", command=master.destroy)
         self.pw_menu_bar.add_cascade(label="File", menu=self.pw_file_menu)
@@ -216,10 +217,15 @@ class PanawaveApp:
             self.pw_input_offset.insert(0, deg)
 
     def open_file(self):
-        pass
+        '''gets filename with standard tk dialog then calls load_new_struct'''
+        filename = askopenfilename(defaultextension=".pwv")
+        if filename is None:
+            return
+        else:
+            self.load_new_struct(file=filename)
 
     def save_file(self):
-        pass
+        asksaveasfilename(defaultextension=".pwv")
 
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas,
