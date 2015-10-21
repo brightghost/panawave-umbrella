@@ -81,6 +81,17 @@ class PanawaveApp:
         master.columnconfigure(0, weight=1, minsize=400)
         master.rowconfigure(0, weight=1, minsize=400)
 
+        # MENU BAR:
+        self.pw_menu_bar = Menu(master)
+        self.pw_file_menu = Menu(self.pw_menu_bar, tearoff=0)
+        self.pw_file_menu.add_command(label="Open...", command=self.open_file)
+        self.pw_file_menu.add_command(label="Save...", command=self.save_file)
+        self.pw_file_menu.add_separator()
+        self.pw_file_menu.add_command(label="Quit", command=master.destroy)
+        self.pw_menu_bar.add_cascade(label="File", menu=self.pw_file_menu)
+
+        master.config(menu=self.pw_menu_bar)
+
         # MAIN VIEW:
         self.pw_canvas = draw_canvas(master)
         # position canvas origin at center
@@ -203,6 +214,12 @@ class PanawaveApp:
         else:
             self.pw_input_offset.delete(0, END)
             self.pw_input_offset.insert(0, deg)
+
+    def open_file(self):
+        pass
+
+    def save_file(self):
+        pass
 
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas,
