@@ -61,11 +61,9 @@ class PanawaveApp:
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
+        self.selected_ring = None
         self.working_struct = self.load_new_struct(file,
                 target_canvas=self.pw_canvas)
-        self.selected_ring = None
-        self.working_struct.draw()
-        self.update_list_box()
 
         # Interface history variables
         self.console_history = []
@@ -225,16 +223,20 @@ class PanawaveApp:
             self.load_new_struct(file=filename)
 
     def save_file(self):
-        asksaveasfilename(defaultextension=".pwv")
+        filename = asksaveasfilename(defaultextension=".pwv")
+        if filename is None:
+            return
+        else:
+            self.working_struct.write_out(filename)
 
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas,
         and populate it from a file if one is given.'''
+        self.selected_ring = None
+        self.working_struct = PanawaveStruct(canvas=target_canvas)
         if file is not None:
-            self.working_struct = PanawaveStruct(canvas=target_canvas)
-        else:
-            self.working_struct = PanawaveStruct(canvas=target_canvas)
             self.working_struct.load_from_file(file)
+        self.working_struct.draw()
         self.update_list_box()
         return self.working_struct
 
@@ -513,10 +515,11 @@ class PanawaveStruct:
         except OSError:
             pass
         with open(output_file, "w") as file:
-            for item in self.persistent_state:
-                json.dump(item, file, default=pw_json_serializer,
+            json.dump(self.persistent_state, file, default=pw_json_serializer,
                     sort_keys=True, indent=4)
-            json.dump({"ring_array": self.ring_array}, file, default=pw_json_serializer, sort_keys=True, indent=4)
+            file.write('\n')
+            json.dump({"ring_array": self.ring_array}, file,
+                    default=pw_json_serializer, sort_keys=True, indent=4)
             # other things we may want to include:
             # app state: selected struct, undo history?
             # selected anim method
