@@ -124,11 +124,16 @@ class StickerRing:
             self.sticker_list.append(s)
 
     def as_string(self):
-        '''return string representing the StickerRing. Used in the UI listbox.'''
+        '''return string representing the StickerRing.'''
         width = 11
         string_rep = '{:<{width}.5g}{:<{width}d}{: <{width}.5g}'.format(
                 self.radius, self.count, self.offsetDegrees, width=width)
         return string_rep
+
+    def as_tuple(self):
+        '''return a tuple representing the StickerRing. Used by UI listbox.'''
+        ring_tuple = (self.radius, self.count, self.offsetDegrees)
+        return ring_tuple
 
     def draw(self, canvas):
         '''plot stickerRing to a canvas'''

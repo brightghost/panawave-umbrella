@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter.ttk import Treeview
 from math import degrees, radians
 from cmath import exp
 from random import random
@@ -99,7 +100,11 @@ class PanawaveApp:
         # Is completely incapable of sanely displaying tabular
         # data as it has no access to a monospaced font!
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
-        self.pw_list_box = Listbox(master, height=10)
+        self.pw_list_box = Treeview(master, height=10)
+        self.pw_list_box.configure(columns=("Radius", "Count", "Offset"))
+        self.pw_list_box.column("Radius", width=11, anchor="center")
+        self.pw_list_box.column("Count", width=11, anchor="center")
+        self.pw_list_box.column("Offset", width=11, anchor="center")
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
         self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
                 command=self.pw_list_box.yview)
@@ -179,9 +184,11 @@ class PanawaveApp:
         self.pw_console.bind("<Down>", self.navigate_console_history)
 
     def update_list_box(self):
-        self.pw_list_box.delete(0, END)
-        for item in self.working_struct.ring_array:
-            self.pw_list_box.insert(END, item.as_string())
+        for item in self.pw_list_box.get_children():
+            self.pw_list_box.delete(item)
+        for index, item in enumerate(self.working_struct.ring_array):
+            self.pw_list_box.insert("", index, text=index,
+                    values=item.as_tuple())
 
     # Sliders modify selected ring's attributes in realtime;
     # if no ring is selected they just adjust the input value
