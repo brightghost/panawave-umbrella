@@ -101,10 +101,21 @@ class PanawaveApp:
         # data as it has no access to a monospaced font!
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
         self.pw_list_box = Treeview(master, height=10)
-        self.pw_list_box.configure(columns=("Radius", "Count", "Offset"))
-        self.pw_list_box.column("Radius", width=11, anchor="center")
-        self.pw_list_box.column("Count", width=11, anchor="center")
-        self.pw_list_box.column("Offset", width=11, anchor="center")
+        self.pw_list_box.configure(columns=("Radius", "Count", "Offset"),
+                displaycolumns=(0,1,2),
+                show="headings") # "tree headings" is the default; 
+                                 # this hides the tree column.
+        # TODO surely we can just not specify an exact widht and let
+        # tkinter proportion them equally?
+        # '#0' is the "primary" tree view column. this can be hidden 
+        # with the 'show' configure option.
+        self.pw_list_box.column("#0", width="40", anchor="center")
+        self.pw_list_box.column("Radius", width="55", anchor="e")
+        self.pw_list_box.heading("Radius", text="Radius") # what a brain-dead API...
+        self.pw_list_box.column("Count", width="55", anchor="e")
+        self.pw_list_box.heading("Count", text="Count")
+        self.pw_list_box.column("Offset", width="55", anchor="e")
+        self.pw_list_box.heading("Offset", text="deg.")
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
         self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
                 command=self.pw_list_box.yview)
