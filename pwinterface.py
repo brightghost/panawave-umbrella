@@ -96,9 +96,9 @@ class PanawaveApp:
 
         # SIDE BAR:
         # struct listing
-        # TODO: Replace this with ttk.treeview, because a listbox
-        # Is completely incapable of sanely displaying tabular
-        # data as it has no access to a monospaced font!
+        # This is now using ttk.Treeview because tkinter listboxes
+        # are completely incapable of sanely displaying tabular
+        # data due to having no access to a monospaced font!
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
         self.pw_list_box = Treeview(master, height=10)
         self.pw_list_box.configure(columns=("Radius", "Count", "Offset"),
@@ -110,12 +110,12 @@ class PanawaveApp:
         # '#0' is the "primary" tree view column. this can be hidden 
         # with the 'show' configure option.
         self.pw_list_box.column("#0", width="40", anchor="center")
-        self.pw_list_box.column("Radius", width="55", anchor="e")
+        self.pw_list_box.column("Radius", width="64", anchor="e")
         self.pw_list_box.heading("Radius", text="Radius") # what a brain-dead API...
-        self.pw_list_box.column("Count", width="55", anchor="e")
+        self.pw_list_box.column("Count", width="64", anchor="e")
         self.pw_list_box.heading("Count", text="Count")
-        self.pw_list_box.column("Offset", width="55", anchor="e")
-        self.pw_list_box.heading("Offset", text="deg.")
+        self.pw_list_box.column("Offset", width="64", anchor="e")
+        self.pw_list_box.heading("Offset", text="Offset°")
         self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
         self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
                 command=self.pw_list_box.yview)
@@ -200,6 +200,11 @@ class PanawaveApp:
         for index, item in enumerate(self.working_struct.ring_array):
             self.pw_list_box.insert("", index, text=index,
                     values=item.as_tuple())
+
+    def update_list_box_selection(self):
+        '''Bound to click events on listbox'''
+        selected_item = self.pw_list_box.selection()
+        
 
     # Sliders modify selected ring's attributes in realtime;
     # if no ring is selected they just adjust the input value
