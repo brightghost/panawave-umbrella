@@ -109,6 +109,7 @@ class StickerRing:
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
     def __init__(self, radius, count, offsetDegrees=0, geometry=None):
+        self.selected = False
         self.radius = float(radius)
         self.count = int(count)
         self.offsetDegrees = float(offsetDegrees)
@@ -146,7 +147,13 @@ class StickerRing:
     def draw(self, canvas):
         '''plot stickerRing to a canvas'''
         for sticker in self.sticker_list:
-            canvas.create_polygon(*sticker.points)
+            if self.selected:
+                # TODO make this outline easier to see and maybe some
+                # fancy intereference-detection on stickers that are
+                # touching.
+                canvas.create_polygon(*sticker.points, outline="red")
+            else:
+                canvas.create_polygon(*sticker.points)
 
     def rotate(self, angle):
         '''rotate the StickerRing. Use this instead of accessing the offset

@@ -218,10 +218,20 @@ class PanawaveApp:
         print("List box is reporting current selection as: ",
                 list_selection_array)
         self.selected_ring_array = []
+        # there's probably a more clever way to do this with a list
+        # comprehension but the scoping issues with listcomps are way over
+        # my head at the moment:
+        # http://stackoverflow.com/questions/13905741/accessing-class-variables-from-a-list-comprehension-in-the-class-definition
+        # Just going to reset the .selected atribute on all rings then
+        # set it again based on what's reported by the TreeView.
+        for ring in self.working_struct.ring_array:
+            ring.selected = False
         for item in list_selection_array:
-            self.selected_ring_array.append(
-                    self.working_struct.ring_array[(int(item) - 1)])
-
+            selected_ring = self.working_struct.ring_array[(int(item) - 1)]
+            self.selected_ring_array.append(selected_ring)
+            selected_ring.selected = True
+        self.pw_canvas.delete("all")
+        self.working_struct.draw(self.pw_canvas)
 
     # Sliders modify selected ring's attributes in realtime;
     # if no ring is selected they just adjust the input value
