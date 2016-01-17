@@ -1,4 +1,5 @@
 # vim swap files
 *.swo
 *.swp
+# python compiler files
 __pycache__

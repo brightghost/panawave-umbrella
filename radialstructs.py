@@ -101,7 +101,10 @@ class PanawavePolygon:
 
 
 class StickerRing:
-    '''create and manage a ring of regularly-spaced poly objects.'''
+    '''create and manage a ring of regularly-spaced poly objects.
+    There's less math if we just throw the polys out and create a
+    new set when changing base characteristics so that's what the
+    setters do currently.'''
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
@@ -122,6 +125,11 @@ class StickerRing:
             s.rotate_about_origin(self.offsetDegrees + period * position)
             position = position + 1
             self.sticker_list.append(s)
+
+    def set_radius(self, new_radius):
+        '''TODO is this a sensible thing to be doing? What is
+        The +/- of calling init vs. just creating a new object?'''
+        self.__init__(new_radius, self.count, self.offsetDegrees)
 
     def as_string(self):
         '''return string representing the StickerRing.'''

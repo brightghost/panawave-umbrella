@@ -58,7 +58,7 @@ class PanawaveApp:
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
-        self.selected_ring = None
+        self.selected_ring_array = []
         self.working_struct = self.load_new_struct(file,
                 target_canvas=self.pw_canvas)
 
@@ -121,6 +121,10 @@ class PanawaveApp:
                 command=self.pw_list_box.yview)
         self.pw_lb_s.grid(row=0, column=4, sticky=(N,S))
         self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
+
+        # If we bind to <Button-1>, our callback is executed before the
+        # selection changes and gives us the *previous* selection.
+        self.pw_list_box.bind('<ButtonRelease-1>', self._update_ring_selection)
 
         # ring attribute sliders
         self.pw_slider_radius = Scale(master, orient=VERTICAL, length=120,
@@ -197,14 +201,27 @@ class PanawaveApp:
     def update_list_box(self):
         for item in self.pw_list_box.get_children():
             self.pw_list_box.delete(item)
-        for index, item in enumerate(self.working_struct.ring_array):
-            self.pw_list_box.insert("", index, text=index,
+        # TODO Apparently index 0 is reserved in the TK listbox; if we try
+        # to assign it we get the randomized IID instead.
+        for index, item in enumerate(self.working_struct.ring_array, start=1):
+            '''explictly setting the iid, otherwise a semi-random one
+            is assigned which makes it difficult to retrieve selected
+            row and map it to a ring item.'''
+            self.pw_list_box.insert("", index, iid=index, text=index,
                     values=item.as_tuple())
 
-    def update_list_box_selection(self):
-        '''Bound to click events on listbox'''
-        selected_item = self.pw_list_box.selection()
-        
+    def _update_ring_selection(self, event):
+        '''Bound to click events on listbox. pw_list_box.selection()
+        returns an IID; we explicitly set these when refreshing the list
+        to make it easier to do this lookup.'''
+        list_selection_array = self.pw_list_box.selection()
+        print("List box is reporting current selection as: ",
+                list_selection_array)
+        self.selected_ring_array = []
+        for item in list_selection_array:
+            self.selected_ring_array.append(
+                    self.working_struct.ring_array[(int(item) - 1)])
+
 
     # Sliders modify selected ring's attributes in realtime;
     # if no ring is selected they just adjust the input value
@@ -212,26 +229,23 @@ class PanawaveApp:
 
     def update_active_ring_radius(self, rad):
         if self.selected_ring is not None:
-            self.selected_ring.radius = rad
-        else:
-            self.pw_input_radius.delete(0, END)
-            self.pw_input_radius.insert(0, rad)
+            self.selected_ring.set_radius(rad)
+        self.pw_input_radius.delete(0, END)
+        self.pw_input_radius.insert(0, rad)
 
     def update_active_ring_count(self, count):
         if self.selected_ring is not None:
-            self.selected_ring.count = count
+            self.selected_ring.set_count(count)
             self.selected_ring.draw(self.pw_canvas)
-        else:
-            self.pw_input_count.delete(0, END)
-            self.pw_input_count.insert(0, count)
+        self.pw_input_count.delete(0, END)
+        self.pw_input_count.insert(0, count)
 
     def update_active_ring_offset(self, deg):
         if self.selected_ring is not None:
-            self.selected_ring.offset = deg
+            self.selected_ring.set_offset(deg)
             self.selected_ring.draw(self.pw_canvas)
-        else:
-            self.pw_input_offset.delete(0, END)
-            self.pw_input_offset.insert(0, deg)
+        self.pw_input_offset.delete(0, END)
+        self.pw_input_offset.insert(0, deg)
 
     def open_file(self):
         '''gets filename with standard tk dialog then calls load_new_struct'''
