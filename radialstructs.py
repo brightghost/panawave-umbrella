@@ -1,6 +1,6 @@
 from math import degrees, radians
 from cmath import exp
-from random import random
+from random import random, randint
 from time import sleep
 import json
 
@@ -109,6 +109,7 @@ class StickerRing:
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
     def __init__(self, radius, count, offsetDegrees=0, geometry=None):
+        self.id = randint(10000,99999)
         self.selected = False
         self.radius = float(radius)
         self.count = int(count)
@@ -146,14 +147,16 @@ class StickerRing:
 
     def draw(self, canvas):
         '''plot stickerRing to a canvas'''
+        ring_tag = "ring-" + str(self.id)
         for sticker in self.sticker_list:
             if self.selected:
                 # TODO make this outline easier to see and maybe some
                 # fancy intereference-detection on stickers that are
                 # touching.
-                canvas.create_polygon(*sticker.points, outline="red")
+                canvas.create_polygon(*sticker.points, outline="red", 
+                        tags=ring_tag)
             else:
-                canvas.create_polygon(*sticker.points)
+                canvas.create_polygon(*sticker.points, tags=ring_tag)
 
     def rotate(self, angle):
         '''rotate the StickerRing. Use this instead of accessing the offset
