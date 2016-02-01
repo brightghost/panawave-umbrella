@@ -94,11 +94,30 @@ class PanawaveApp:
         self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
         self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
 
+        # CANVAS BINDINGS
+
+        def _update_clicked_canvas_item():
+            '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
+            which represents an item under the cursor, then update the
+            selected_ring array if it's determined a ring was clicked.'''
+            if self.pw_canvas.find_withtag(CURRENT):
+                clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
+                try:
+                    # TODO FIXME shit... I guess we need to redefine ring_array
+                    # so we can access it by StickerRing.id. Make it a dict?
+                    clicked_ring_tag = next(tag for tag in self.pw_canvas.gettags(clicked_obj_id) if "ring-" in tag)
+                    clicked_ring_id = clicked_ring_tag.strip("ring-")
+                    self.selected_ring = self.working_struct.ring_array[clicked_ring_tag]
+                except NameError:
+                    # it's possible we'll click an object other than a sticker
+                    return
+
+
         # SIDE BAR:
         # struct listing
-        # This is now using ttk.Treeview because tkinter listboxes
-        # are completely incapable of sanely displaying tabular
-        # data due to having no access to a monospaced font!
+        # This is now using ttk.Treeview because tkinter listboxes are
+        # completely incapable of sanely displaying tabular data due to having
+        # no access to a monospaced font!
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
         self.pw_list_box = Treeview(master, height=10)
         self.pw_list_box.configure(columns=("Radius", "Count", "Offset"),
@@ -199,16 +218,14 @@ class PanawaveApp:
         self.pw_console.bind("<Down>", self.navigate_console_history)
 
     def update_list_box(self):
+        '''Rebuild the pw_list_box from the current contents of working_struct.
+        ring_array . IID's are explicitly set to coincide with the StickerRing.id       to simplify lookups for click events.'''
         for item in self.pw_list_box.get_children():
             self.pw_list_box.delete(item)
-        # TODO Apparently index 0 is reserved in the TK listbox; if we try
-        # to assign it we get the randomized IID instead.
-        for index, item in enumerate(self.working_struct.ring_array, start=1):
-            '''explictly setting the iid, otherwise a semi-random one
-            is assigned which makes it difficult to retrieve selected
-            row and map it to a ring item.'''
-            self.pw_list_box.insert("", index, iid=index, text=index,
-                    values=item.as_tuple())
+        for i, key in enumerate(self.working_struct.ring_array, start=1):
+            ring = self.working_struct.ring_array[key]
+            self.pw_list_box.insert(parent="", index=i, iid=int(ring.id), text=i,
+                    values=ring.as_tuple())
 
     def _update_ring_selection(self, event):
         '''Bound to click events on listbox. pw_list_box.selection()

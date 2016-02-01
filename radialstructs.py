@@ -174,7 +174,9 @@ class PanawaveStruct:
     def __init__(self, tkinstance=None, canvas=None, *args):
         '''We need to pass a reference to the canvas to store
         locally in order to use the tk .wait callbacks in animation'''
-        self.ring_array = []
+        # this is now a dict instead of a list so we can easily access 
+        #rings by ID.
+        self.ring_array = {}
         for arg in args:
             self.add_ring(*args)
         if tkinstance is not None:
@@ -196,8 +198,8 @@ class PanawaveStruct:
         '''plot all elements to a canvas'''
         if target_canvas is None:
             target_canvas = self.canvas
-        for stickerRing in self.ring_array:
-            stickerRing.draw(target_canvas)
+        for ring in self.ring_array.values():
+            ring.draw(target_canvas)
 
     # Working with child  objects:
 
@@ -213,8 +215,12 @@ class PanawaveStruct:
                 # fails an eval straight into our list? or did I do this to
                 # handle strings or something?
                 evaluated_args.append(arg)
+        self.canvas.delete("all")
 
-        self.ring_array.append(StickerRing(*evaluated_args))
+        # We need to initialize the new ring before adding it to the ring_array
+        # so we can reference it's id as the key.
+        new_ring = StickerRing(*evaluated_args)
+        self.ring_array[str(new_ring.id)] = new_ring
 
     # File Input/Output Methods:
 
@@ -271,15 +277,15 @@ class PanawaveStruct:
             # the divide by zero errors below
             return
         if method == "random":
-            for ring in self.ring_array:
+            for ring in self.ring_array.values():
                 ring.radial_speed = random()
         elif method == "linear":
             speed_step = 1 / len(self.ring_array)
-            for index, ring in enumerate(self.ring_array):
+            for index, ring in enumerate(self.ring_array.values()):
                 ring.radial_speed = speed_step * index
         elif method == "inverse-linear":
             speed_step = 1 / len(self.ring_array)
-            for index, ring in enumerate(self.ring_array):
+            for index, ring in enumerate(self.ring_array.values()):
                 ring.radial_speed = speed_step * (len(self.ring_array) - index)
         # Linear speed, units/sec.
         if canvas is None:
@@ -293,7 +299,7 @@ class PanawaveStruct:
     def _draw_one_frame(self, canvas, index):
         working_canvas = canvas
         working_canvas.delete("all")
-        for ringnum, ring in enumerate(self.ring_array):
+        for ringnum, ring in enumerate(self.ring_array.values()):
             increment = self.persistent_state["master_orbit_speed"] * ring.radial_speed
             print("Ring ", ringnum, " position at start: ", ring.offsetDegrees)
             print("Rotating ring ", ringnum, " by increment ", increment)
