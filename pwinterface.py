@@ -251,10 +251,10 @@ class PanawaveApp:
         # http://stackoverflow.com/questions/13905741/accessing-class-variables-from-a-list-comprehension-in-the-class-definition
         # Just going to reset the .selected atribute on all rings then
         # set it again based on what's reported by the TreeView.
-        for ring in self.working_struct.ring_array:
+        for ring in self.working_struct.ring_array.values():
             ring.selected = False
-        for item in list_selection_array:
-            selected_ring = self.working_struct.ring_array[(int(item) - 1)]
+        for iid in list_selection_array:
+            selected_ring = self.working_struct.ring_array[iid]
             self.selected_ring_array.append(selected_ring)
             selected_ring.selected = True
         self.pw_canvas.delete("all")
