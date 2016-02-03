@@ -58,7 +58,7 @@ class PanawaveApp:
     def __init__(self, master, file=None):
         self.master = master
         self.create_ui(master)
-        self.selected_ring_array = []
+        self.pw_interface_selected_rings = []
         self.working_struct = self.load_new_struct(file,
                 target_canvas=self.pw_canvas)
 
@@ -244,7 +244,7 @@ class PanawaveApp:
         list_selection_array = self.pw_list_box.selection()
         print("List box is reporting current selection as: ",
                 list_selection_array)
-        self.selected_ring_array = []
+        self.pw_interface_selected_rings = []
         # there's probably a more clever way to do this with a list
         # comprehension but the scoping issues with listcomps are way over
         # my head at the moment:
@@ -255,7 +255,7 @@ class PanawaveApp:
             ring.selected = False
         for iid in list_selection_array:
             selected_ring = self.working_struct.ring_array[iid]
-            self.selected_ring_array.append(selected_ring)
+            self.pw_interface_selected_rings.append(selected_ring)
             selected_ring.selected = True
         self.pw_canvas.delete("all")
         self.working_struct.draw(self.pw_canvas)
