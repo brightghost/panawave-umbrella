@@ -108,7 +108,7 @@ class PanawaveApp:
                 displaycolumns=(0,1,2),
                 show="headings") # "tree headings" is the default; 
                                  # this hides the tree column.
-        # TODO surely we can just not specify an exact widht and let
+        # TODO surely we can just not specify an exact width and let
         # tkinter proportion them equally?
         # '#0' is the "primary" tree view column. this can be hidden 
         # with the 'show' configure option.
