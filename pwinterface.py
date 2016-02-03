@@ -93,24 +93,8 @@ class PanawaveApp:
         # position canvas origin at center
         self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
         self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
+        self.pw_canvas.bind("<Button-1>", self._update_clicked_canvas_item)
 
-        # CANVAS BINDINGS
-
-        def _update_clicked_canvas_item():
-            '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
-            which represents an item under the cursor, then update the
-            selected_ring array if it's determined a ring was clicked.'''
-            if self.pw_canvas.find_withtag(CURRENT):
-                clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
-                try:
-                    # TODO FIXME shit... I guess we need to redefine ring_array
-                    # so we can access it by StickerRing.id. Make it a dict?
-                    clicked_ring_tag = next(tag for tag in self.pw_canvas.gettags(clicked_obj_id) if "ring-" in tag)
-                    clicked_ring_id = clicked_ring_tag.strip("ring-")
-                    self.selected_ring = self.working_struct.ring_array[clicked_ring_tag]
-                except NameError:
-                    # it's possible we'll click an object other than a sticker
-                    return
 
 
         # SIDE BAR:
@@ -216,6 +200,32 @@ class PanawaveApp:
         self.pw_console.bind("<Return>", self.execute_console_input)
         self.pw_console.bind("<Up>", self.navigate_console_history)
         self.pw_console.bind("<Down>", self.navigate_console_history)
+
+        # CANVAS BINDINGS
+
+    def _update_clicked_canvas_item(self, event):
+        '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
+        which represents an item under the cursor, then update the
+        selected_ring array if it's determined a ring was clicked.'''
+        if self.pw_canvas.find_withtag(CURRENT):
+            clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
+            print("Clicked on object with id ", clicked_obj_id)
+            try:
+                clicked_ring_tag = next(
+                        tag for tag in self.pw_canvas.gettags(
+                            clicked_obj_id) if "ring-" in tag)
+                print("The clicked object has the ring tag", clicked_ring_tag)
+                clicked_ring_id = clicked_ring_tag.strip("ring-")
+                print("Adding to the selected_ring list the ring with key",
+                        clicked_ring_id)
+                self.selected_ring = self.working_struct.ring_array[clicked_ring_id]
+                print("Updating selected_ring to", self.selected_ring)
+            except NameError:
+                # it's possible we'll click an object other than a sticker
+                return
+        else:
+            print("No CURRENT tag returned, must not have clicked an object.")
+
 
     def update_list_box(self):
         '''Rebuild the pw_list_box from the current contents of working_struct.
