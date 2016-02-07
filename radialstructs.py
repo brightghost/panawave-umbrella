@@ -145,6 +145,10 @@ class StickerRing:
         ring_tuple = (self.radius, self.count, self.offsetDegrees)
         return ring_tuple
 
+    def toggle_selected_state(self):
+        '''Toggles .selected property.'''
+        self.selected = not self.selected
+
     def draw(self, canvas):
         '''plot stickerRing to a canvas'''
         ring_tag = "ring-" + str(self.id)
