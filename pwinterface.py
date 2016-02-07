@@ -217,7 +217,7 @@ class PanawaveApp:
                 print("The clicked object has the ring tag", clicked_ring_tag)
                 clicked_ring = self.working_struct.ring_array[clicked_ring_tag.strip("ring-")]
                 # Toggle the .selected state
-                clicked_ring.toggle_selection_state
+                clicked_ring.toggle_selection_state()
                 print("Toggled the selected state of the ring with key", clicked_ring.id)
 
                 # Rebuild the pw_interface_selected_rings from the updated
