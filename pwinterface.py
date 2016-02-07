@@ -218,8 +218,7 @@ class PanawaveApp:
                 clicked_ring = self.working_struct.ring_array[clicked_ring_tag.strip("ring-")]
             except NameError:
                 # it's possible we'll click an object other than a sticker
-                print("A canvas object was clicked but no "ring-
-                        *" tag was found. Must not be a ring object."
+                print("A canvas object was clicked but no 'ring-*' tag was found. Must not be a ring object.")
                 return
             # Toggle the .selected state
             clicked_ring.toggle_selection_state()
