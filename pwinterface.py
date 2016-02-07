@@ -216,21 +216,23 @@ class PanawaveApp:
                             clicked_obj_id) if "ring-" in tag)
                 print("The clicked object has the ring tag", clicked_ring_tag)
                 clicked_ring = self.working_struct.ring_array[clicked_ring_tag.strip("ring-")]
-                # Toggle the .selected state
-                clicked_ring.toggle_selection_state()
-                print("Toggled the selected state of the ring with key", clicked_ring.id)
-
-                # Rebuild the pw_interface_selected_rings from the updated
-                # data in the PanawaveStruct
-                self.pw_interface_selected_rings = [ring for ring in self.working_struct.ring_array.values() if ring.selected]
-                print("Updated contents of pw_interface_selected_rings with the followng items:", self.pw_interface_selected_rings)
-
-                # Redraw the selected rings. TODO separate funtion.
-                self.pw_canvas.delete("all")
-                self.working_struct.draw(self.pw_canvas)
             except NameError:
                 # it's possible we'll click an object other than a sticker
+                print("A canvas object was clicked but no "ring-
+                        *" tag was found. Must not be a ring object."
                 return
+            # Toggle the .selected state
+            clicked_ring.toggle_selection_state()
+            print("Toggled the selected state of the ring with key", clicked_ring.id)
+
+            # Rebuild the pw_interface_selected_rings from the updated
+            # data in the PanawaveStruct
+            self.pw_interface_selected_rings = [ring for ring in self.working_struct.ring_array.values() if ring.selected]
+            print("Updated contents of pw_interface_selected_rings with the followng items:", self.pw_interface_selected_rings)
+
+            # Redraw the selected rings. TODO separate funtion.
+            self.pw_canvas.delete("all")
+            self.working_struct.draw(self.pw_canvas)
         else:
             print("No CURRENT tag returned, must not have clicked an object.")
 
