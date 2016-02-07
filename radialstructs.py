@@ -153,8 +153,8 @@ class StickerRing:
                 # TODO make this outline easier to see and maybe some
                 # fancy intereference-detection on stickers that are
                 # touching.
-                canvas.create_polygon(*sticker.points, outline="red", 
-                        tags=ring_tag)
+                canvas.create_polygon(*sticker.points, outline="blue",
+                        width=2.0, tags=ring_tag)
             else:
                 canvas.create_polygon(*sticker.points, tags=ring_tag)
 
