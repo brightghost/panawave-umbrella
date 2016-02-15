@@ -93,7 +93,7 @@ class PanawaveApp:
         # position canvas origin at center
         self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
         self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
-        self.pw_canvas.bind("<Button-1>", self._update_clicked_canvas_item)
+        self.pw_canvas.bind("<Button-1>", self._click_pw_canvas)
 
 
 
@@ -127,7 +127,7 @@ class PanawaveApp:
 
         # If we bind to <Button-1>, our callback is executed before the
         # selection changes and gives us the *previous* selection.
-        self.pw_list_box.bind('<ButtonRelease-1>', self._update_ring_selection)
+        self.pw_list_box.bind('<ButtonRelease-1>', self._click_pw_listbox)
 
         # ring attribute sliders
         self.pw_slider_radius = Scale(master, orient=VERTICAL, length=120,
@@ -203,14 +203,19 @@ class PanawaveApp:
 
         # CANVAS BINDINGS
 
-    def _update_clicked_canvas_item(self, event):
+    def _click_pw_canvas(self, event):
         '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
-        which represents an item under the cursor, then update the
-        selected_ring array if it's determined a ring was clicked.'''
+        which represents an item under the cursor, then:
+        1. Toggle the .selected property if it's determined a ring was clicked,
+        2. Rebuild the interface's internal list of selected items,
+        3. Redraw the canvas,
+        4. Rebuild the pw_list_box from the RingArray.'''
+        # Check if we actually clicked something
         if self.pw_canvas.find_withtag(CURRENT):
             clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
             print("Clicked on object with id ", clicked_obj_id)
             try:
+                # See if it's tagged as part of a ring...
                 clicked_ring_tag = next(
                         tag for tag in self.pw_canvas.gettags(
                             clicked_obj_id) if "ring-" in tag)
@@ -221,53 +226,72 @@ class PanawaveApp:
                 print("A canvas object was clicked but no 'ring-*' tag was found. Must not be a ring object.")
                 return
             # Toggle the .selected state
-            clicked_ring.toggle_selection_state()
+            clicked_ring.toggle_selected_state()
             print("Toggled the selected state of the ring with key", clicked_ring.id)
-
-            # Rebuild the pw_interface_selected_rings from the updated
-            # data in the PanawaveStruct
+            # Rebuild the pw_interface_selected_rings from the updated data in
+            # the PanawaveStruct
             self.pw_interface_selected_rings = [ring for ring in self.working_struct.ring_array.values() if ring.selected]
             print("Updated contents of pw_interface_selected_rings with the followng items:", self.pw_interface_selected_rings)
-
-            # Redraw the selected rings. TODO separate funtion.
-            self.pw_canvas.delete("all")
-            self.working_struct.draw(self.pw_canvas)
+            # Redraw with the newly-selected rings.
+            self._rebuild_pw_canvas()
+            # Rebuild the list_box with newly-selected rings.
+            self._rebuild_list_box()
         else:
             print("No CURRENT tag returned, must not have clicked an object.")
 
+    def _rebuild_pw_canvas(self):
+        '''Clear and then redraw the working_struct to the canvas.'''
+        self.pw_canvas.delete("all")
+        self.working_struct.draw(self.pw_canvas)
 
-    def update_list_box(self):
-        '''Rebuild the pw_list_box from the current contents of working_struct.
-        ring_array . IID's are explicitly set to coincide with the StickerRing.id       to simplify lookups for click events.'''
+    def _rebuild_list_box(self):
+        '''Rebuild the pw_list_box from the current contents of
+        working_struct.ring_array . This is only called when interacting with
+        the canvas or the ring input controls, because the TreeView is stateful
+        and handles its own updates internally.'''
         for item in self.pw_list_box.get_children():
             self.pw_list_box.delete(item)
+        # Think we can safely assume deleting all items will also clear selection?
+        # if not: self.pw_list_box.selection_set('')
         for i, key in enumerate(self.working_struct.ring_array, start=1):
             ring = self.working_struct.ring_array[key]
+            # IID's are explicitly set to conincide with StickerRing.id to
+            # simplify lookups for click events.
             self.pw_list_box.insert(parent="", index=i, iid=int(ring.id), text=i,
                     values=ring.as_tuple())
+            # update selected state also from .selected prop!
+            if ring.selected:
+                self.pw_list_box.selection_add(key)
 
-    def _update_ring_selection(self, event):
+    def _click_pw_listbox(self, event):
         '''Bound to click events on listbox. pw_list_box.selection()
-        returns an IID; we explicitly set these when refreshing the list
-        to make it easier to do this lookup.'''
-        list_selection_array = self.pw_list_box.selection()
+        is stateful so we assume the values it returns are canonical;
+        1. Propogate selected state back to the working_struct,
+        2. Update the interface's internal list of selected items,
+        2. Redraw the rings on canvas with new selections.'''
+        # IID's are set at creation to coincide with .id property 
+        # so we can directly look up the clicked item.
+        list_selection_items = self.pw_list_box.selection()
         print("List box is reporting current selection as: ",
-                list_selection_array)
+                list_selection_items)
+        # Clear the interface's working list of selected items
         self.pw_interface_selected_rings = []
         # there's probably a more clever way to do this with a list
         # comprehension but the scoping issues with listcomps are way over
         # my head at the moment:
         # http://stackoverflow.com/questions/13905741/accessing-class-variables-from-a-list-comprehension-in-the-class-definition
-        # Just going to reset the .selected atribute on all rings then
+        # Reset the .selected atribute on all rings then
         # set it again based on what's reported by the TreeView.
         for ring in self.working_struct.ring_array.values():
             ring.selected = False
-        for iid in list_selection_array:
+        for iid in list_selection_items:
             selected_ring = self.working_struct.ring_array[iid]
             self.pw_interface_selected_rings.append(selected_ring)
             selected_ring.selected = True
         self.pw_canvas.delete("all")
         self.working_struct.draw(self.pw_canvas)
+
+
 
     # Sliders modify selected ring's attributes in realtime;
     # if no ring is selected they just adjust the input value
@@ -316,7 +340,7 @@ class PanawaveApp:
         if file is not None:
             self.working_struct.load_from_file(file)
         self.working_struct.draw()
-        self.update_list_box()
+        self._rebuild_list_box()
         return self.working_struct
 
     def submit_new_ring(self, *args):
@@ -328,7 +352,7 @@ class PanawaveApp:
                 self.pw_input_offset.get())
         self.working_struct.draw(self.pw_canvas)
         self.pw_input_radius.focus_set()
-        self.update_list_box()
+        self._rebuild_list_box()
 
     def toggle_animation(self):
         if self.working_struct.animating is True:
@@ -362,7 +386,7 @@ class PanawaveApp:
             print("***Console input generated the following error:***")
             print(e)
         self.working_struct.draw(self.pw_canvas)
-        self.update_list_box()
+        self._rebuild_list_box()
         sleep(.5)
         self.console_history_offset = 0
         self.pw_console.delete(0, END)
