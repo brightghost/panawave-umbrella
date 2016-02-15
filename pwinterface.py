@@ -213,7 +213,8 @@ class PanawaveApp:
         1. Toggle the .selected property if it's determined a ring was clicked,
         2. Rebuild the interface's internal list of selected items,
         3. Redraw the canvas,
-        4. Rebuild the pw_list_box from the RingArray.'''
+        4. Rebuild the pw_list_box from the RingArray.
+        5. Reset the input sliders (if applicable).'''
         # Check if we actually clicked something
         if self.pw_canvas.find_withtag(CURRENT):
             clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
@@ -240,6 +241,8 @@ class PanawaveApp:
             self._rebuild_pw_canvas()
             # Rebuild the list_box with newly-selected rings.
             self._rebuild_list_box()
+            # Reset input sliders, if a single ring is selected
+            self._pw_input_reset()
         else:
             print("No CURRENT tag returned, must not have clicked an object.")
 
@@ -272,7 +275,8 @@ class PanawaveApp:
         is stateful so we assume the values it returns are canonical;
         1. Propogate selected state back to the working_struct,
         2. Update the interface's internal list of selected items,
-        2. Redraw the rings on canvas with new selections.'''
+        3. Redraw the rings on canvas with new selections.
+        4. Reset the input sliders (if applicable).'''
         # IID's are set at creation to coincide with .id property 
         # so we can directly look up the clicked item.
         list_selection_items = self.pw_list_box.selection()
@@ -292,8 +296,8 @@ class PanawaveApp:
             selected_ring = self.working_struct.ring_array[iid]
             self.pw_interface_selected_rings.append(selected_ring)
             selected_ring.selected = True
-        self.pw_canvas.delete("all")
-        self.working_struct.draw(self.pw_canvas)
+        self._rebuild_pw_canvas()
+        self._pw_input_reset()
 
     def _pw_listbox_clear_selection(self, event=None):
         '''Bound to ESC when pw_listbox has selection.'''
@@ -303,9 +307,30 @@ class PanawaveApp:
         # handler to propogate the cleared selection back to the object
         self._click_pw_listbox()
 
+    def _pw_input_reset(self):
+        '''Reset the input and sliders to reflect current selected ring.
+        If more than one ring is selected, disable the inputs.'''
         # Sliders modify selected ring's attributes in realtime;
         # if no ring is selected they just adjust the input value
         # and wait for the 'Submit' button to do anything with them.
+        sliders = (self.pw_slider_radius, self.pw_slider_count, self.pw_slider_offset)
+        inputs = (self.pw_input_radius, self.pw_input_count, self.pw_input_offset)
+        if len(self.pw_interface_selected_rings) == 1:
+            print("Exactly one ring has been selected, setting input controls to its values.")
+            (rad, count, offset) = self.pw_interface_selected_rings[0].radius, \
+            self.pw_interface_selected_rings[0].count, \
+            self.pw_interface_selected_rings[0].offsetDegrees
+            for elem in (sliders + inputs):
+                elem.configure(state=NORMAL)
+            for slider, value in zip(sliders, (rad, count, offset)):
+                    slider.set(value)
+        elif len(self.pw_interface_selected_rings) > 1:
+            print("Disabling inputs as multiple rings are selected.")
+            for slider in sliders:
+                slider.set(0)
+                slider.configure(state=DISABLED)
+            for input in inputs:
+                input.configure(state=DISABLED)
 
     def update_active_ring_radius(self, rad):
         if len(self.pw_interface_selected_rings) == 1:
