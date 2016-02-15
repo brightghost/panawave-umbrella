@@ -98,7 +98,7 @@ class PanawaveApp:
         self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
         self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
         self.pw_canvas.bind("<Button-1>", self._click_pw_canvas)
-
+        self.pw_canvas.bind("<Double-Button-1>", self._double_click_pw_canvas)
 
 
         # SIDE BAR:
@@ -132,6 +132,7 @@ class PanawaveApp:
         # If we bind to <Button-1>, our callback is executed before the
         # selection changes and gives us the *previous* selection.
         self.pw_list_box.bind('<ButtonRelease-1>', self._click_pw_listbox)
+        self.pw_list_box.bind("<Key-Escape>", self._pw_interface_clear_selection)
 
         # ring attribute sliders
         self.pw_slider_radius = Scale(master, orient=VERTICAL, length=120,
@@ -230,9 +231,18 @@ class PanawaveApp:
                 # it's possible we'll click an object other than a sticker
                 print("A canvas object was clicked but no 'ring-*' tag was found. Must not be a ring object.")
                 return
-            # Toggle the .selected state
-            clicked_ring.toggle_selected_state()
-            print("Toggled the selected state of the ring with key", clicked_ring.id)
+            # Bitwise 'AND' of the bitmask returned by .state
+            if event.state & 0x004:
+                # Ctrl-key modifier is enabled
+                # Toggle the .selected state
+                clicked_ring.toggle_selected_state()
+                print("Ctrl-clicked ring; toggled the selected state of the ring with key", clicked_ring.id)
+            else:
+                # no Ctrl-key modifier; reset selection
+                for ring in self.working_struct.ring_array.values():
+                    ring.selected = False
+                clicked_ring.selected = True
+                print("Clicked a ring without Ctrl modifier; clearing previous selection and selecting ring with key", clicked_ring.id)
             # Rebuild the pw_interface_selected_rings from the updated data in
             # the PanawaveStruct
             self.pw_interface_selected_rings = [ring for ring in self.working_struct.ring_array.values() if ring.selected]
@@ -245,6 +255,17 @@ class PanawaveApp:
             self._pw_input_reset()
         else:
             print("No CURRENT tag returned, must not have clicked an object.")
+
+    def _double_click_pw_canvas(self, event=None):
+        '''Bound to double click on canvas. Clears ring selection if empty area
+        is double-clicked. NOTE: Our single click handler will still fire!
+        This is okay, because that handler does nothing when empty canvas is
+        clicked.'''
+        if self.pw_canvas.find_withtag(CURRENT):
+            print("Double clicked but there was an object under the mouse, taking no action")
+        else:
+            print("Double clicked empty canvas area; clearing selection.")
+            self._pw_interface_clear_selection()
 
     def _rebuild_pw_canvas(self):
         '''Clear and then redraw the working_struct to the canvas.'''
@@ -299,13 +320,18 @@ class PanawaveApp:
         self._rebuild_pw_canvas()
         self._pw_input_reset()
 
-    def _pw_listbox_clear_selection(self, event=None):
+    def _pw_interface_clear_selection(self, event=None):
         '''Bound to ESC when pw_listbox has selection.'''
-        self.pw_list_box.selection_set('')
-        print("Cleared pw_list_box selection.")
+        # self.pw_list_box.selection_set('')
+        self.pw_interface_selected_rings = []
+        for ring in self.working_struct.ring_array.values():
+            ring.selected = False
+        self._rebuild_list_box()
+        self._rebuild_pw_canvas()
+        print("Cleared selection.")
         # TODO This is probably a messy interface but...just calling the click
         # handler to propogate the cleared selection back to the object
-        self._click_pw_listbox()
+        # self._click_pw_listbox()
 
     def _pw_input_reset(self):
         '''Reset the input and sliders to reflect current selected ring.
