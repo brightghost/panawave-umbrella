@@ -1,6 +1,10 @@
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
+# this import will override the standard tkinter widgets with the 
+# themed ones. Theming is done differently on the ttk versions so 
+# we'll need to make several adjustments in order to enable them.
+# from tkinter.ttk import *
 from math import degrees, radians
 from cmath import exp
 from random import random
@@ -203,7 +207,7 @@ class PanawaveApp:
 
         # CANVAS BINDINGS
 
-    def _click_pw_canvas(self, event):
+    def _click_pw_canvas(self, event=None):
         '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
         which represents an item under the cursor, then:
         1. Toggle the .selected property if it's determined a ring was clicked,
@@ -231,7 +235,7 @@ class PanawaveApp:
             # Rebuild the pw_interface_selected_rings from the updated data in
             # the PanawaveStruct
             self.pw_interface_selected_rings = [ring for ring in self.working_struct.ring_array.values() if ring.selected]
-            print("Updated contents of pw_interface_selected_rings with the followng items:", self.pw_interface_selected_rings)
+            print("Updated contents of pw_interface_selected_rings with the following items:", self.pw_interface_selected_rings)
             # Redraw with the newly-selected rings.
             self._rebuild_pw_canvas()
             # Rebuild the list_box with newly-selected rings.
@@ -263,7 +267,7 @@ class PanawaveApp:
             if ring.selected:
                 self.pw_list_box.selection_add(key)
 
-    def _click_pw_listbox(self, event):
+    def _click_pw_listbox(self, event=None):
         '''Bound to click events on listbox. pw_list_box.selection()
         is stateful so we assume the values it returns are canonical;
         1. Propogate selected state back to the working_struct,
@@ -291,31 +295,38 @@ class PanawaveApp:
         self.pw_canvas.delete("all")
         self.working_struct.draw(self.pw_canvas)
 
+    def _pw_listbox_clear_selection(self, event=None):
+        '''Bound to ESC when pw_listbox has selection.'''
+        self.pw_list_box.selection_set('')
+        print("Cleared pw_list_box selection.")
+        # TODO This is probably a messy interface but...just calling the click
+        # handler to propogate the cleared selection back to the object
+        self._click_pw_listbox()
 
-
-    # Sliders modify selected ring's attributes in realtime;
-    # if no ring is selected they just adjust the input value
-    # and wait for the 'Submit' button to do anything with them.
+        # Sliders modify selected ring's attributes in realtime;
+        # if no ring is selected they just adjust the input value
+        # and wait for the 'Submit' button to do anything with them.
 
     def update_active_ring_radius(self, rad):
-        if self.selected_ring is not None:
-            self.selected_ring.set_radius(rad)
+        if len(self.pw_interface_selected_rings) == 1:
+            self.pw_interface_selected_rings[0].set_radius(rad)
         self.pw_input_radius.delete(0, END)
         self.pw_input_radius.insert(0, rad)
+        self._rebuild_pw_canvas()
 
     def update_active_ring_count(self, count):
-        if self.selected_ring is not None:
-            self.selected_ring.set_count(count)
-            self.selected_ring.draw(self.pw_canvas)
+        if len(self.pw_interface_selected_rings) == 1:
+            self.pw_interface_selected_rings[0].set_count(count)
         self.pw_input_count.delete(0, END)
         self.pw_input_count.insert(0, count)
+        self._rebuild_pw_canvas()
 
     def update_active_ring_offset(self, deg):
-        if self.selected_ring is not None:
-            self.selected_ring.set_offset(deg)
-            self.selected_ring.draw(self.pw_canvas)
+        if len(self.pw_interface_selected_rings) == 1:
+            self.pw_interface_selected_rings[0].set_offset(deg)
         self.pw_input_offset.delete(0, END)
         self.pw_input_offset.insert(0, deg)
+        self._rebuild_pw_canvas()
 
     def open_file(self):
         '''gets filename with standard tk dialog then calls load_new_struct'''

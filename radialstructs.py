@@ -108,30 +108,42 @@ class StickerRing:
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
-    def __init__(self, radius, count, offsetDegrees=0, geometry=None):
-        self.id = randint(10000,99999)
+    def __init__(self, radius, count, offsetDegrees=0, geometry=None, id=None):
+        if id is None:
+            self.id = randint(10000,99999)
+        else:
+            self.id = id
         self.selected = False
+        if geometry is not None:
+            self.baseStickerPoly = geometry
+        self._initialize_geometry(radius, count, offsetDegrees)
+
+    def _initialize_geometry(self, radius, count, offsetDegrees):
         self.radius = float(radius)
         self.count = int(count)
         self.offsetDegrees = float(offsetDegrees)
         self.sticker_list = []
-        period = 360 / self.count
-        position = 1
-        if geometry is not None:
-            self.baseStickerPoly = geometry
-        for i in range(self.count):
+        self.period = 360 / self.count
+        for i in range(1, self.count + 1):
             s = PanawavePolygon(self.baseStickerPoly)
             # center the centroid at canvas origin before other moves
             s.translate((0 - s.centroid[0]), (0 - s.centroid[1]))
             s.translate(0, self.radius)
-            s.rotate_about_origin(self.offsetDegrees + period * position)
-            position = position + 1
+            s.rotate_about_origin(self.offsetDegrees + self.period * i)
+            # position = position + 1
             self.sticker_list.append(s)
 
     def set_radius(self, new_radius):
-        '''TODO is this a sensible thing to be doing? What is
-        The +/- of calling init vs. just creating a new object?'''
-        self.__init__(new_radius, self.count, self.offsetDegrees)
+        '''Setter for radius; will re-initialize the object.'''
+        self._initialize_geometry(new_radius, self.count, self.offsetDegrees)
+
+    def set_count(self, new_count):
+        '''Setter for count; will re-initialize the object.'''
+        self._initialize_geometry(self.radius, new_count, self.offsetDegrees)
+
+    def set_offset(self, new_offset):
+        '''Setter for offset; will re-intialize the object.'''
+        self._initialize_geometry(self.radius, self.count, new_offset)
 
     def as_string(self):
         '''return string representing the StickerRing.'''
