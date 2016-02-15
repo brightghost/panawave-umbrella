@@ -260,15 +260,15 @@ class PanawaveApp:
             self.pw_list_box.delete(item)
         # Think we can safely assume deleting all items will also clear selection?
         # if not: self.pw_list_box.selection_set('')
-        for i, key in enumerate(self.working_struct.ring_array, start=1):
-            ring = self.working_struct.ring_array[key]
-            # IID's are explicitly set to conincide with StickerRing.id to
+        sorted_rings = sorted(self.working_struct.ring_array.values(), key= lambda ring: ring.radius)
+        for i, ring in enumerate(sorted_rings, start=1):
+            # IID's are explicitly set to coincide with StickerRing.id to
             # simplify lookups for click events.
             self.pw_list_box.insert(parent="", index=i, iid=int(ring.id), text=i,
                     values=ring.as_tuple())
             # update selected state also from .selected prop!
             if ring.selected:
-                self.pw_list_box.selection_add(key)
+                self.pw_list_box.selection_add(int(ring.id))
 
     def _click_pw_listbox(self, event=None):
         '''Bound to click events on listbox. pw_list_box.selection()
@@ -338,6 +338,7 @@ class PanawaveApp:
         self.pw_input_radius.delete(0, END)
         self.pw_input_radius.insert(0, rad)
         self._rebuild_pw_canvas()
+        self._rebuild_list_box()
 
     def update_active_ring_count(self, count):
         if len(self.pw_interface_selected_rings) == 1:
@@ -345,6 +346,7 @@ class PanawaveApp:
         self.pw_input_count.delete(0, END)
         self.pw_input_count.insert(0, count)
         self._rebuild_pw_canvas()
+        self._rebuild_list_box()
 
     def update_active_ring_offset(self, deg):
         if len(self.pw_interface_selected_rings) == 1:
@@ -352,6 +354,7 @@ class PanawaveApp:
         self.pw_input_offset.delete(0, END)
         self.pw_input_offset.insert(0, deg)
         self._rebuild_pw_canvas()
+        self._rebuild_list_box()
 
     def open_file(self):
         '''gets filename with standard tk dialog then calls load_new_struct'''
