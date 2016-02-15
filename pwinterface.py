@@ -235,7 +235,7 @@ class PanawaveApp:
             # Rebuild the pw_interface_selected_rings from the updated data in
             # the PanawaveStruct
             self.pw_interface_selected_rings = [ring for ring in self.working_struct.ring_array.values() if ring.selected]
-            print("Updated contents of pw_interface_selected_rings with the following items:", self.pw_interface_selected_rings)
+            print("New contents of pw_interface_selected_rings:", self.pw_interface_selected_rings)
             # Redraw with the newly-selected rings.
             self._rebuild_pw_canvas()
             # Rebuild the list_box with newly-selected rings.
