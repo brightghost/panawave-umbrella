@@ -412,6 +412,14 @@ class PanawaveApp:
         '''validate the input and submit it to our current struct.
         will accept event objects from bindings but currently ignores
         them.'''
+        if self.working_struct.animating:
+            # TODO there's actually no reason we need to stop animation except
+            # that the radial_speeds for rings are assigned when the anim. is
+            # initialized, and because for most of the anim method adding a new
+            # ring will neccessitate recalculating all speeds.  the simple
+            # solution would just be to call toffle_animation again at the end
+            # of this function.
+            self.toggle_animation()
         self.working_struct.add_ring(self.pw_input_radius.get(), \
                 self.pw_input_count.get(), \
                 self.pw_input_offset.get())
