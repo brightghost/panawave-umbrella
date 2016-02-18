@@ -204,8 +204,11 @@ class PanawaveStruct:
         self.persistent_state = {
             # master scaler for animations. can also be modified by
             # passing as argument to any of the animation methods.
-            "master_orbit_speed": 1.5,
-            # TODO this should move to an ephemeral_state array
+            "master_orbit_speed": 1.5
+            }
+        # This dictionary is intended for variables that can be discarded when
+        # saved to file.
+        self.ephemeral_state = {
             "animating": False
             }
 
@@ -281,7 +284,7 @@ class PanawaveStruct:
     # High-level manipulation methods:
 
     def stop_animation(self):
-        self.animating = False
+        self.ephemeral_state['animating'] = False
 
     def orbit(self, method="random", canvas=None, speed=None):
         ''' Several orbit methods are defined here. All will assign a
@@ -307,7 +310,7 @@ class PanawaveStruct:
             canvas = self.canvas
         if speed is not None:
             self.persistent_state["master_orbit_speed"] = speed
-        self.animating = True
+        self.ephemeral_state['animating'] = True
         self._animation_index = 1
         self._animate_orbit()
 
@@ -329,7 +332,7 @@ class PanawaveStruct:
         allllll the way down. but we're
         accepting an arbitrary canvas in the related functions above, and
         accepting a self reference when called from orbit_randomly.'''
-        if self.animating is True:
+        if self.ephemeral_state['animating'] is True:
             self._draw_one_frame(self.canvas, self._animation_index)
             self._animation_index = self._animation_index + 1
             self.canvas.after(100, self._animate_orbit)

@@ -412,7 +412,7 @@ class PanawaveApp:
         '''validate the input and submit it to our current struct.
         will accept event objects from bindings but currently ignores
         them.'''
-        if self.working_struct.animating:
+        if self.working_struct.ephemeral_state['animating']:
             # TODO there's actually no reason we need to stop animation except
             # that the radial_speeds for rings are assigned when the anim. is
             # initialized, and because for most of the anim method adding a new
@@ -428,10 +428,11 @@ class PanawaveApp:
         self._rebuild_list_box()
 
     def toggle_animation(self):
-        if self.working_struct.animating is True:
+        if self.working_struct.ephemeral_state['animating'] is True:
             self.working_struct.stop_animation()
             self.pw_orbit_toggle.configure(text="Start")
         else:
+            # TODO we need to actually call the priot anim method!
             self.working_struct.orbit_randomly()
             self.pw_orbit_toggle.configure(text="Stop")
 
