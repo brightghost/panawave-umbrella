@@ -1,111 +1,53 @@
-from tkinter import *
+import tkinter
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
-from math import degrees, radians
-from cmath import exp
-from random import random
-from time import sleep
-import json
-import os
-import sys
-# Debugging console
-from IPython import embed
 
-from radialstructs import *
-
-def draw_canvas(tkinstance):
+class PWCanvas(tkinter.Canvas):
     # basic assumptions of the canvas: origin at center, radial
     # positions specified by setting radius along pos. Y axis and
     # then performing clockwise rotation.
 
-    w = Canvas(tkinstance, width=800, height=800)
-    # this will position origin at center
-    w.configure(scrollregion=(-400,-400,400,400))
-    w.pack()
-    # center crosshairs
-    w.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
-    w.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
-    return w
+    def __init__(tkinstance, *args, **kwargs):
+        tkinter.Canvas.__init__(tkinstance, width=800, height=800, args, kwargs)        # this will position origin at center
+        self.configure(scrollregion=(-400,-400,400,400))
+        self.pack()
+        # center crosshairs
+        self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
+        self.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
+        self.configure(scrollregion=(-400,-400,400,400))
+        self.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
+        self.bind("<Button-1>", self._update_clicked_canvas_item)
 
-
-class PanawaveApp:
-    '''our GUI app for working with PanawaveStructs.
-    Requires reference to a Tk instance, and optionally a
-    file to load initially.
-
-    Window layout: (via asciiflow.com)
-                                                       
-     0                        1 2 3 4                  
-                                                       
-     +-------------------------------+ 0 List          
-     |                        |     ||   List          
-     |                        |     ||                 
-     |                        |     ||                 
-     |                        |     ||                 
-     |                        +------+ 1               
-     |                        | | |  |   Sliders       
-     |                        | | |  |                 
-     |                        +------+ 2               
-     |                        | | |  |   Input         
-     |                        +------+ 3               
-     |                        | | |  |   Anim. methods 
-     +-------------------------------+ 4               
-     |                        |      |   Toggle anim.  
-     +-------------------------------+                 
-                                                       
-      Console                         
-    '''
-    def __init__(self, master, file=None):
-        self.master = master
-        self.create_ui(master)
-        self.pw_interface_selected_rings = []
-        self.working_struct = self.load_new_struct(file,
-                target_canvas=self.pw_canvas)
-
-        # Interface history variables
-        self.console_history = []
-        self.console_history_offset = 0
-
-        # DEBUG IPython Console:
-        embed()
-
-        self.tkapp.mainloop()
-
-    def create_ui(self, master):
-        master = self.master
-        master.wm_title("Panawave Umbrella Editor")
-        master.columnconfigure(0, weight=1, minsize=400)
-        master.rowconfigure(0, weight=1, minsize=400)
-
-        # MENU BAR:
-        self.pw_menu_bar = Menu(master)
-        self.pw_file_menu = Menu(self.pw_menu_bar, tearoff=0)
-        self.pw_file_menu.add_command(label="Open...", command=self.open_file)
-        self.pw_file_menu.add_command(label="Save as...", command=self.save_file)
-        self.pw_file_menu.add_separator()
-        self.pw_file_menu.add_command(label="Quit", command=master.destroy)
-        self.pw_menu_bar.add_cascade(label="File", menu=self.pw_file_menu)
-
-        master.config(menu=self.pw_menu_bar)
-
-        # MAIN VIEW:
-        self.pw_canvas = draw_canvas(master)
-        # position canvas origin at center
-        self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
-        self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
-        self.pw_canvas.bind("<Button-1>", self._update_clicked_canvas_item)
+#     def __init__(self, master, file=None):
+#         self.master = master
+#         self.create_ui(master)
+#         self.pw_interface_selected_rings = []
+#         self.working_struct = self.load_new_struct(file,
+#                 target_canvas=self.pw_canvas)
+# 
+#         # Interface history variables
+#         self.console_history = []
+#         self.console_history_offset = 0
+# 
+#         # DEBUG IPython Console:
+#         embed()
+# 
+#         self.tkapp.mainloop()
 
 
 
         # SIDE BAR:
+class PWListBox(tkinter.Treeview):
+    '''Extends tkinter.Treeview for dumb reasons.'''
+    def __init__(tkinstance, height):
         # struct listing
         # This is now using ttk.Treeview because tkinter listboxes are
         # completely incapable of sanely displaying tabular data due to having
         # no access to a monospaced font!
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
-        self.pw_list_box = Treeview(master, height=10)
-        self.pw_list_box.configure(columns=("Radius", "Count", "Offset"),
+        ttk.Treeview.__init__(tkinstance, height=height)
+        self.configure(columns=("Radius", "Count", "Offset"),
                 displaycolumns=(0,1,2),
                 show="headings") # "tree headings" is the default; 
                                  # this hides the tree column.
@@ -113,36 +55,49 @@ class PanawaveApp:
         # tkinter proportion them equally?
         # '#0' is the "primary" tree view column. this can be hidden 
         # with the 'show' configure option.
-        self.pw_list_box.column("#0", width="40", anchor="center")
-        self.pw_list_box.column("Radius", width="64", anchor="e")
-        self.pw_list_box.heading("Radius", text="Radius") # what a brain-dead API...
-        self.pw_list_box.column("Count", width="64", anchor="e")
-        self.pw_list_box.heading("Count", text="Count")
-        self.pw_list_box.column("Offset", width="64", anchor="e")
-        self.pw_list_box.heading("Offset", text="Offset°")
-        self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
-        self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
-                command=self.pw_list_box.yview)
+        # self.pw_list_box.column("#0", width="40", anchor="center")
+        self.add_col("Radius")
+        self.add_col("Count")
+        self.add_col("Offset", text="Offset°")
+        self.grid(row=0, column=1, sticky=(N,S), columnspan=4)
+        # Scrollbar
+        self.pw_lb_s = tkinter.Scrollbar(tkinstance, orient=VERTICAL,
+                command=self.yview)
         self.pw_lb_s.grid(row=0, column=4, sticky=(N,S))
         self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
 
-        # If we bind to <Button-1>, our callback is executed before the
-        # selection changes and gives us the *previous* selection.
+        # If we were to bind <Button-1>, our callback would be executed before
+        # the selection changes and give us the *previous* selection.
         self.pw_list_box.bind('<ButtonRelease-1>', self._update_ring_selection)
 
-        # ring attribute sliders
-        self.pw_slider_radius = ttk.Scale(master, orient=VERTICAL, length=120,
-                from_=200.0, to=1.0,
-                command=self.update_active_ring_radius)
-        self.pw_slider_radius.grid(row=1, column=1)
-        self.pw_slider_count = ttk.Scale(master, orient=VERTICAL, length=120,
-                from_=50.0, to=1.0,
-                command=self.update_active_ring_count)
-        self.pw_slider_count.grid(row=1, column=2)
-        self.pw_slider_offset = ttk.Scale(master, orient=VERTICAL, length=120,
-                from_=360.0, to=0.0,
-                command=self.update_active_ring_offset)
-        self.pw_slider_offset.grid(row=1, column=3)
+    def add_col(heading, text=None, width=64, anchor="e"):
+        '''Method for encapsulating the moronic TreeView column interface.'''
+        try:
+            heading = str(heading)
+        except TypeError:
+            raise
+        if text is None:
+            text = heading
+        self.column(heading, width=width, anchor=anchor)
+        self.heading(heading, text=text)
+
+
+class PWSlider(ttk.Scale):
+    '''Slider with accompanying input box, native theme, and option to snap to
+    integers. NOTE: grid position can be specified with the row and col args,
+    but beware that this widget will take up TWO rows in the layout.'''
+    def __init__(tkinstance, from_, to, orient=tkinter.VERTICAL, length=120, command=None, row=None, col=None):
+        ttk.Scale.__init__(tkinstance, from_=from_, to=to, orient=orient, length=length)
+        self.grid(row=row, column=col)
+
+
+# ring attribute sliders
+self.pw_slider_radius = PWSlider(master, from_=200.0, to=1.0,
+        command=self.update_active_ring_radius, row=1, column=1)
+self.pw_slider_count = PWSlider(master, from_=50.0, to=1.0,
+        command=self.update_active_ring_count, row=1, column=2)
+self.pw_slider_offset = PWSlider(master, from_=360.0, to=0.0,
+        command=self.update_active_ring_offset, row=1, column=3)
 
         def _update_slider_radius(event):
             self.pw_slider_radius.set(self.pw_input_radius.get())
