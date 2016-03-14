@@ -1,4 +1,6 @@
 import tkinter
+from tkinter import N,E,S,W, VERTICAL, HORIZONTAL # just a handful of things that are really easier to
+# ref in the base namespace
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
@@ -8,16 +10,18 @@ class PWCanvas(tkinter.Canvas):
     # positions specified by setting radius along pos. Y axis and
     # then performing clockwise rotation.
 
-    def __init__(tkinstance, *args, **kwargs):
-        tkinter.Canvas.__init__(tkinstance, width=800, height=800, args, kwargs)        # this will position origin at center
-        self.configure(scrollregion=(-400,-400,400,400))
-        self.pack()
+    def __init__(self, tkinstance, width=None, height=None, row=None, column=None, columnspan=None, rowspan=None, **kwargs):
+        tkinter.Canvas.__init__(self, tkinstance, width=width, height=height, **kwargs)        
+        self.configure(scrollregion=(-400,-400,400,400)) # this will position origin at center
         # center crosshairs
         self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
         self.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
         self.configure(scrollregion=(-400,-400,400,400))
-        self.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
+        self.grid(row=row, column=column, rowspan=rowspan, columnspan=columnspan, sticky=(N,E,S,W))
         self.bind("<Button-1>", self._update_clicked_canvas_item)
+        # self.bind("<Configure>", foo) 
+        # will probably need to implement this binding in order to scale
+        # drawn elements as the window resized.
 
 #     def __init__(self, master, file=None):
 #         self.master = master
@@ -34,43 +38,58 @@ class PWCanvas(tkinter.Canvas):
 #         embed()
 # 
 #         self.tkapp.mainloop()
-
+    def _update_clicked_canvas_item(event):
+        pass
 
 
         # SIDE BAR:
-class PWListBox(tkinter.Treeview):
-    '''Extends tkinter.Treeview for dumb reasons.'''
-    def __init__(tkinstance, height):
-        # struct listing
+class PWListBox(tkinter.Frame):
+    '''Extended from tkinter.Treeview for dumb reasons.'''
+    def __init__(self, tkinstance, row=None, column=None, columnspan=None, **kwargs):
+        # Parent frame for internal layout management
+        tkinter.Frame.__init__(self, tkinstance)
+
+        # Struct List
         # This is now using ttk.Treeview because tkinter listboxes are
         # completely incapable of sanely displaying tabular data due to having
         # no access to a monospaced font!
         # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
-        ttk.Treeview.__init__(tkinstance, height=height)
-        self.configure(columns=("Radius", "Count", "Offset"),
+        self.list = Treeview(self, **kwargs)
+        self.list.configure(columns=("Radius", "Count", "Offset"),
                 displaycolumns=(0,1,2),
                 show="headings") # "tree headings" is the default; 
                                  # this hides the tree column.
-        # TODO surely we can just not specify an exact width and let
-        # tkinter proportion them equally?
-        # '#0' is the "primary" tree view column. this can be hidden 
-        # with the 'show' configure option.
-        # self.pw_list_box.column("#0", width="40", anchor="center")
+
+        # List Access Methods
+        # define some access methods in this namespace for ease of use.
+        # TODO the methods which call these from pwinterface should become
+        # class methods here.
+        self.get_children = self.list.get_children
+        self.delete = self.list.delete
+        self.insert = self.list.insert
+
         self.add_col("Radius")
         self.add_col("Count")
         self.add_col("Offset", text="Offset°")
-        self.grid(row=0, column=1, sticky=(N,S), columnspan=4)
-        # Scrollbar
-        self.pw_lb_s = tkinter.Scrollbar(tkinstance, orient=VERTICAL,
-                command=self.yview)
-        self.pw_lb_s.grid(row=0, column=4, sticky=(N,S))
-        self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
 
+        # Scrollbar
+        self.scroll = ttk.Scrollbar(self, orient=VERTICAL,
+                command=self.list.yview)
+        self.list['yscrollcommand'] = self.scroll.set
         # If we were to bind <Button-1>, our callback would be executed before
         # the selection changes and give us the *previous* selection.
-        self.pw_list_box.bind('<ButtonRelease-1>', self._update_ring_selection)
+        self.bind('<ButtonRelease-1>', self._update_ring_selection)
 
-    def add_col(heading, text=None, width=64, anchor="e"):
+        # Layout
+        self.list.grid(row=0, column=0, sticky=(N,S,E,W))
+        self.scroll.grid(row=0, column=1, sticky=(N,S))
+        self.columnconfigure(0, weight=1) # TODO is this accomplishing anything?
+        self.rowconfigure(0, weight=1)
+        self.grid(row=row, column=column, columnspan=columnspan, sticky=(N,S))
+
+
+
+    def add_col(self, heading, text=None, width=64, anchor="e"):
         '''Method for encapsulating the moronic TreeView column interface.'''
         try:
             heading = str(heading)
@@ -78,58 +97,82 @@ class PWListBox(tkinter.Treeview):
             raise
         if text is None:
             text = heading
-        self.column(heading, width=width, anchor=anchor)
-        self.heading(heading, text=text)
+        # TODO surely we can just not specify an exact width and let
+        # tkinter proportion them equally?
+        # '#0' is the "primary" tree view column. this can be hidden 
+        # with the 'show' configure option.
+        # self.pw_list_box.column("#0", width="40", anchor="center")
+        self.list.column(heading, width=width, anchor=anchor)
+        self.list.heading(heading, text=text)
+
+    def _update_ring_selection(event):
+        pass
 
 
-class PWSlider(ttk.Scale):
+class PWSlider(tkinter.Frame):
     '''Slider with accompanying input box, native theme, and option to snap to
-    integers. NOTE: grid position can be specified with the row and col args,
-    but beware that this widget will take up TWO rows in the layout.'''
-    def __init__(tkinstance, from_, to, orient=tkinter.VERTICAL, length=120, command=None, row=None, col=None):
-        ttk.Scale.__init__(tkinstance, from_=from_, to=to, orient=orient, length=length)
-        self.grid(row=row, column=col)
+    integers.'''
+    def __init__(self, tkinstance, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
+        tkinter.Frame.__init__(self, tkinstance)
+        # self.row = kwargs.pop("row")
+        # self.col = kwargs.pop("column")
+        self.scale = ttk.Scale(self, orient=orient, length=length, command=self._update_input_box, **kwargs) 
+        self.scale.grid(row=0, column=0, pady=4)
+        # Input box
+        self.input_box = tkinter.Entry(self, width=4)
+        self.input_box.grid(row=1, column=0, sticky=N)
+        self.input_box.bind("<FocusOut>", self._update_slider)
+        self.input_box.bind("<Return>", submit_new_ring)
+        self.grid(row=row, column=column, pady=4)
+
+    def _update_input_box(self, event):
+        '''Passes the value from slider to input box when adjusted.'''
+        self.input_box.set(self.get())
+
+    def _update_slider(self, event):
+        self.set(self.input_box.get())
 
 
-# ring attribute sliders
-self.pw_slider_radius = PWSlider(master, from_=200.0, to=1.0,
-        command=self.update_active_ring_radius, row=1, column=1)
-self.pw_slider_count = PWSlider(master, from_=50.0, to=1.0,
-        command=self.update_active_ring_count, row=1, column=2)
-self.pw_slider_offset = PWSlider(master, from_=360.0, to=0.0,
-        command=self.update_active_ring_offset, row=1, column=3)
+class PWSubmitButton(ttk.Button):
+    '''New ring submit button.'''
+    def __init__(self, tkinstance, row=None, column=None, columnspan=None):
+        ttk.Button.__init__(self, tkinstance, text="Create", command=submit_new_ring)
+        self.grid(row=row, column=column, columnspan=columnspan, pady=4)
 
-        def _update_slider_radius(event):
-            self.pw_slider_radius.set(self.pw_input_radius.get())
 
-        def _update_slider_count(event):
-            self.pw_slider_count.set(self.pw_input_count.get())
+def submit_new_ring():
+    '''TODO this should maybe go somewhere else? Needs to be called by PWSlider and PWSubmitButton.'''
 
-        def _update_slider_offset(event):
-            self.pw_slider_offset.set(self.pw_input_offset.get())
 
-        # ring attribute entry boxes
-        self.pw_input_radius = Entry(master)
-        self.pw_input_radius.configure(width=4)
-        self.pw_input_radius.bind("<FocusOut>", _update_slider_radius)
-        self.pw_input_radius.grid(row=2, column=1, sticky=N)
-        self.pw_input_radius.bind("<Return>", self.submit_new_ring)
-        self.pw_input_count = Entry(master)
-        self.pw_input_count.configure(width=4)
-        self.pw_input_count.bind("<FocusOut>", _update_slider_count)
-        self.pw_input_count.grid(row=2, column=2, sticky=N)
-        self.pw_input_count.bind("<Return>", self.submit_new_ring)
-        self.pw_input_offset = Entry(master)
-        self.pw_input_offset.configure(width=4)
-        self.pw_input_offset.bind("<FocusOut>", _update_slider_offset)
-        self.pw_input_offset.grid(row=2, column=3, sticky=N)
-        self.pw_input_offset.bind("<Return>", self.submit_new_ring)
+class PWAnimController(tkinter.Frame):
+    '''Combined selection box and animation control button. This widget will
+    operate on the working_struct .'''
+    def __init__(self, tkinstance, values=None, row=None, column=None, columnspan=None):
+        tkinter.Frame.__init__(self, tkinstance)
+        if values == None:
+            methods = {"random": "Random",
+                    "linear": "Linear",
+                    "reverse-linear": "Reverse Linear"
+                    }
+        else:
+            methods = values
+        self.combo = ttk.Combobox(self, values=list(methods.values()), state="readonly", width=15) # apparently no way to not set a width? default is 20
+        self.combo.grid(row=0, column=0, sticky=(E,W))
+        # self.combo.pack(expand=True, fill='x', side='left', anchor=W)
+        self.combo.current(1) # init with 1st item selected
+        self.combo.bind("<<ComboboxSelected>>", self._set_anim_method)
+        self.toggle_button = ttk.Button(self, text="Start", width=5, command=self.toggle_animation)
+        self.toggle_button.grid(row=0, column=1, padx=4)
+        self.speedslider = ttk.Scale(self, orient=HORIZONTAL)
+        self.speedslider.set(.5) # init in middle
+        self.speedslider.grid(row=1, column=0, sticky=(W,E))
+        self.grid(row=row, column=column, columnspan=columnspan, sticky=(E,W), pady=4)
+        self.columnconfigure(0, weight=1)
 
-        # new ring submit button
-        self.pw_input_submit = Button(master, text="Create",
-                command=self.submit_new_ring)
-        self.pw_input_submit.grid(row=3, column=1, columnspan=4)
+    def _set_anim_method():
+        pass
 
+    def toggle_animation():
         # animation control buttons, row 1 (on/off)
         # set width manually so layout doesn't jump around when we
         # change the text
@@ -342,11 +385,4 @@ self.pw_slider_offset = PWSlider(master, from_=360.0, to=0.0,
             self.pw_console.delete(0, END)
             self.pw_console.insert(END, hist[new_offset])
             print ("decided offset ", new_offset, " is valid.")
-
-
-if __name__ == "__main__":
-    print("initializing Panawave Umbrella Editor...")
-    master = Tk()
-    global our_app
-    our_app = PanawaveApp(master)
 

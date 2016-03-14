@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-from tkinter.ttk import Treeview
+from tkinter.ttk import Treeview, Style
 from tkinter import ttk
 from math import degrees, radians
 from cmath import exp
@@ -13,6 +13,7 @@ import sys
 from IPython import embed
 
 from radialstructs import *
+from pwwidgets import *
 
 def draw_canvas(tkinstance):
     # basic assumptions of the canvas: origin at center, radial
@@ -75,8 +76,13 @@ class PanawaveApp:
     def create_ui(self, master):
         master = self.master
         master.wm_title("Panawave Umbrella Editor")
-        master.columnconfigure(0, weight=1, minsize=400)
-        master.rowconfigure(0, weight=1, minsize=400)
+        master.columnconfigure(0, weight=1, minsize=100)
+        master.rowconfigure(0, weight=1, minsize=100)
+
+        # THEME:
+        styler = Style()
+        if "clam" in styler.theme_names():
+            styler.theme_use("clam")
 
         # MENU BAR:
         self.pw_menu_bar = Menu(master)
@@ -90,117 +96,52 @@ class PanawaveApp:
         master.config(menu=self.pw_menu_bar)
 
         # MAIN VIEW:
-        self.pw_canvas = draw_canvas(master)
-        # position canvas origin at center
-        self.pw_canvas.configure(scrollregion=(-400,-400,400,400))
-        self.pw_canvas.grid(row=0, column=0, rowspan=5, sticky=(N,E,W))
-        self.pw_canvas.bind("<Button-1>", self._update_clicked_canvas_item)
-
-
+        self.pw_canvas = PWCanvas(master, row=0, column=0, rowspan=5)
+        self.console_button = tkinter.Button(master, text=">")
+        self.pw_canvas.create_window(-330, 330, anchor=SW, window=self.console_button)
 
         # SIDE BAR:
-        # struct listing
-        # This is now using ttk.Treeview because tkinter listboxes are
-        # completely incapable of sanely displaying tabular data due to having
-        # no access to a monospaced font!
-        # http://stackoverflow.com/questions/3794268/command-for-clicking-on-the-items-of-a-tkinter-treeview-widget
-        self.pw_list_box = Treeview(master, height=10)
-        self.pw_list_box.configure(columns=("Radius", "Count", "Offset"),
-                displaycolumns=(0,1,2),
-                show="headings") # "tree headings" is the default; 
-                                 # this hides the tree column.
-        # TODO surely we can just not specify an exact width and let
-        # tkinter proportion them equally?
-        # '#0' is the "primary" tree view column. this can be hidden 
-        # with the 'show' configure option.
-        self.pw_list_box.column("#0", width="40", anchor="center")
-        self.pw_list_box.column("Radius", width="64", anchor="e")
-        self.pw_list_box.heading("Radius", text="Radius") # what a brain-dead API...
-        self.pw_list_box.column("Count", width="64", anchor="e")
-        self.pw_list_box.heading("Count", text="Count")
-        self.pw_list_box.column("Offset", width="64", anchor="e")
-        self.pw_list_box.heading("Offset", text="Offset°")
-        self.pw_list_box.grid(row=0, column=1, sticky=(N,S), columnspan=4)
-        self.pw_lb_s = Scrollbar(master, orient=VERTICAL,
-                command=self.pw_list_box.yview)
-        self.pw_lb_s.grid(row=0, column=4, sticky=(N,S))
-        self.pw_list_box['yscrollcommand'] = self.pw_lb_s.set
-
-        # If we bind to <Button-1>, our callback is executed before the
-        # selection changes and gives us the *previous* selection.
-        self.pw_list_box.bind('<ButtonRelease-1>', self._update_ring_selection)
+        self.pw_list_box = PWListBox(master, row=0, column=1, columnspan=3)
 
         # ring attribute sliders
-        self.pw_slider_radius = ttk.Scale(master, orient=VERTICAL, length=120,
-                from_=200.0, to=1.0,
-                command=self.update_active_ring_radius)
-        self.pw_slider_radius.grid(row=1, column=1)
-        self.pw_slider_count = ttk.Scale(master, orient=VERTICAL, length=120,
-                from_=50.0, to=1.0,
-                command=self.update_active_ring_count)
-        self.pw_slider_count.grid(row=1, column=2)
-        self.pw_slider_offset = ttk.Scale(master, orient=VERTICAL, length=120,
-                from_=360.0, to=0.0,
-                command=self.update_active_ring_offset)
-        self.pw_slider_offset.grid(row=1, column=3)
-
-        def _update_slider_radius(event):
-            self.pw_slider_radius.set(self.pw_input_radius.get())
-
-        def _update_slider_count(event):
-            self.pw_slider_count.set(self.pw_input_count.get())
-
-        def _update_slider_offset(event):
-            self.pw_slider_offset.set(self.pw_input_offset.get())
-
-        # ring attribute entry boxes
-        self.pw_input_radius = Entry(master)
-        self.pw_input_radius.configure(width=4)
-        self.pw_input_radius.bind("<FocusOut>", _update_slider_radius)
-        self.pw_input_radius.grid(row=2, column=1, sticky=N)
-        self.pw_input_radius.bind("<Return>", self.submit_new_ring)
-        self.pw_input_count = Entry(master)
-        self.pw_input_count.configure(width=4)
-        self.pw_input_count.bind("<FocusOut>", _update_slider_count)
-        self.pw_input_count.grid(row=2, column=2, sticky=N)
-        self.pw_input_count.bind("<Return>", self.submit_new_ring)
-        self.pw_input_offset = Entry(master)
-        self.pw_input_offset.configure(width=4)
-        self.pw_input_offset.bind("<FocusOut>", _update_slider_offset)
-        self.pw_input_offset.grid(row=2, column=3, sticky=N)
-        self.pw_input_offset.bind("<Return>", self.submit_new_ring)
+        self.pw_slider_radius = PWSlider(master, from_=200.0, to=1.0,
+                row=1, column=1)
+        self.pw_slider_count = PWSlider(master, from_=50.0, to=1.0,
+                row=1, column=2)
+        self.pw_slider_offset = PWSlider(master, from_=360.0, to=0.0,
+                row=1, column=3)
 
         # new ring submit button
-        self.pw_input_submit = Button(master, text="Create",
-                command=self.submit_new_ring)
-        self.pw_input_submit.grid(row=3, column=1, columnspan=4)
+        self.pw_input_submit = PWSubmitButton(master, 
+                row=2, column=1, columnspan=3)
 
-        # animation control buttons, row 1 (on/off)
-        # set width manually so layout doesn't jump around when we
-        # change the text
-        self.pw_orbit_toggle = Button(master, text="Stop",
-                command=self.toggle_animation, width=5)
-        self.pw_orbit_toggle.grid(row=4, column=1)
+        self.pw_anim_control = PWAnimController(master, row=3, column=1, columnspan=3)
+        # # animation control buttons, row 1 (on/off)
+        # # set width manually so layout doesn't jump around when we
+        # # change the text
+        # self.pw_orbit_toggle = Button(master, text="Stop",
+        #         command=self.toggle_animation, width=5)
+        # self.pw_orbit_toggle.grid(row=4, column=1)
 
-        # animation control buttons, row 2 (anim methods)
-        self.pw_orbit_begin_random = Button(master, text="Random",
-                width=5, command=self.orbit_randomly)
-        self.pw_orbit_begin_random.grid(row=5, column=1)
-        self.pw_orbit_begin_linear = Button(master, text="Linear",
-                width=5, command=self.orbit_linearly)
-        self.pw_orbit_begin_linear.grid(row=5, column=2)
+        # # animation control buttons, row 2 (anim methods)
+        # self.pw_orbit_begin_random = Button(master, text="Random",
+        #         width=5, command=self.orbit_randomly)
+        # self.pw_orbit_begin_random.grid(row=5, column=1)
+        # self.pw_orbit_begin_linear = Button(master, text="Linear",
+        #         width=5, command=self.orbit_linearly)
+        # self.pw_orbit_begin_linear.grid(row=5, column=2)
 
-        self.pw_orbit_begin_inverse_linear = Button(master,
-                text="Inverse Linear", width=5,
-                command=self.orbit_inverse_linearly)
-        self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
+        # self.pw_orbit_begin_inverse_linear = Button(master,
+        #         text="Inverse Linear", width=5,
+        #         command=self.orbit_inverse_linearly)
+        # self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
 
-        # console
-        self.pw_console = Entry(master)
-        self.pw_console.grid(row=5, column=0, columnspan=1, sticky=(W,E))
-        self.pw_console.bind("<Return>", self.execute_console_input)
-        self.pw_console.bind("<Up>", self.navigate_console_history)
-        self.pw_console.bind("<Down>", self.navigate_console_history)
+        # # console
+        # self.pw_console = Entry(master)
+        # self.pw_console.grid(row=5, column=0, columnspan=1, sticky=(W,E))
+        # self.pw_console.bind("<Return>", self.execute_console_input)
+        # self.pw_console.bind("<Up>", self.navigate_console_history)
+        # self.pw_console.bind("<Down>", self.navigate_console_history)
 
         # CANVAS BINDINGS
 
