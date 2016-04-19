@@ -59,7 +59,7 @@ class PanawaveApp:
     '''
     def __init__(self, master, file=None):
         self.master = master
-        self.create_ui(master)
+        self.create_ui()
         self.pw_interface_selected_rings = []
         self.working_struct = self.load_new_struct(file,
                 target_canvas=self.pw_canvas)
@@ -73,7 +73,7 @@ class PanawaveApp:
 
         self.tkapp.mainloop()
 
-    def create_ui(self, master):
+    def create_ui(self):
         master = self.master
         master.wm_title("Panawave Umbrella Editor")
         master.columnconfigure(0, weight=1, minsize=100)
@@ -103,17 +103,13 @@ class PanawaveApp:
         # SIDE BAR:
         self.pw_list_box = PWListBox(master, row=0, column=1, columnspan=3)
 
-        # ring attribute sliders
-        self.pw_slider_radius = PWSlider(master, from_=200.0, to=1.0,
-                row=1, column=1)
-        self.pw_slider_count = PWSlider(master, from_=50.0, to=1.0,
-                row=1, column=2)
-        self.pw_slider_offset = PWSlider(master, from_=360.0, to=0.0,
-                row=1, column=3)
 
-        # new ring submit button
-        self.pw_input_submit = PWSubmitButton(master, 
-                row=2, column=1, columnspan=3)
+        # RING CONTROL:
+        self.pw_controller = PWController(master)
+        self.pw_controller.pw_slider_radius.grid(row=1, column=1)
+        self.pw_controller.pw_slider_count.grid(row=1, column=2)
+        self.pw_controller.pw_slider_offset.grid(row=1, column=3)
+        self.pw_controller.pw_input_submit.grid(row=2, column=1, columnspan=3)
 
         self.pw_anim_control = PWAnimController(master, row=3, column=1, columnspan=3)
         # # animation control buttons, row 1 (on/off)
@@ -144,6 +140,36 @@ class PanawaveApp:
         # self.pw_console.bind("<Down>", self.navigate_console_history)
 
         # CANVAS BINDINGS
+
+
+    def open_file(self):
+        '''gets filename with standard tk dialog then calls load_new_struct'''
+        filename = askopenfilename(defaultextension=".pwv")
+        if filename is None:
+            return
+        else:
+            self.load_new_struct(file=filename)
+
+    def save_file(self):
+        filename = asksaveasfilename(defaultextension=".pwv")
+        if filename is None:
+            return
+        else:
+            self.working_struct.write_out(filename)
+
+    def load_new_struct(self, file=None, target_canvas=None):
+        '''create an empty struct, attach it to the canvas,
+        and populate it from a file if one is given.'''
+        self.selected_ring = None
+        self.working_struct = PanawaveStruct(canvas=target_canvas)
+        if file is not None:
+            self.working_struct.load_from_file(file)
+        self.working_struct.draw()
+        self.update_list_box()
+        return self.working_struct
+
+# ===========================================================================
+# Reference shite left over below.
 
     def _update_clicked_canvas_item(self, event):
         '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
@@ -227,20 +253,6 @@ class PanawaveApp:
         self.pw_input_offset.delete(0, END)
         self.pw_input_offset.insert(0, deg)
 
-    def open_file(self):
-        '''gets filename with standard tk dialog then calls load_new_struct'''
-        filename = askopenfilename(defaultextension=".pwv")
-        if filename is None:
-            return
-        else:
-            self.load_new_struct(file=filename)
-
-    def save_file(self):
-        filename = asksaveasfilename(defaultextension=".pwv")
-        if filename is None:
-            return
-        else:
-            self.working_struct.write_out(filename)
 
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas,
