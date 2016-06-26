@@ -5,17 +5,27 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
 
-class PWMenuBar(tkinter.Menu):
-    def __init__(self, tkinstance, *args, **kwargs):
-        tkinter.Menu.__init__(self, tkinstance)
+
+class PWWidget:
+    '''
+    Parent class for Panawave Widgets. PWWdigets all extent a tkinter widget,
+as well as PWWidget.  Among other things, this parent class manages the
+references to the PWApp, which extends Tk and thus serves as a master for the
+tkinter widgets as well as a container for app state data.
+    '''
+    pwapp = None # this needs to be set when the app is instantiated.
+
+class PWMenuBar(PWWidget, tkinter.Menu):
+    def __init__(self, *args, **kwargs):
+        tkinter.Menu.__init__(self, self.pwapp.master)
         self.pw_file_menu = Menu(self, tearoff=0)
         self.pw_file_menu.add_command(label="Open...", command=self.open_file)
         self.pw_file_menu.add_command(label="Save as...", command=self.save_file)
         self.pw_file_menu.add_separator()
-        self.pw_file_menu.add_command(label="Quit", command=tkinstance.destroy)
+        self.pw_file_menu.add_command(label="Quit", command=self.pwapp.master.destroy)
         self.add_cascade(label="File", menu=self.pw_file_menu)
 
-        tkinstance.config(menu=self.pw_menu_bar)
+        self.pwapp.master.config(menu=self.pw_menu_bar)
 
     def open_file(self):
         '''gets filename with standard tk dialog then calls load_new_struct'''
@@ -33,16 +43,16 @@ class PWMenuBar(tkinter.Menu):
             working_struct.write_out(filename)
 
 
-class PWViewer():
+class PWViewer(PWWidget):
     '''PWViewer contains a PWCanvas and PWListBox and manages the callbacks
     which interconnect the two and reference the working_struct. PWViewer
     has no relevance within the tkinter context; the child PWCanvas and
     PWListBox can be laid out independently.'''
 
-    def __init__(self, tkinstance):
-        self.pw_canvas = PWCanvas(tkinstance)
+    def __init__(self):
+        self.pw_canvas = PWCanvas(self.pwapp.master)
         self.pw_canvas.bind("<Button-1>", _update_selected_ring_with_canvas_click)
-        self.pw_list = PWListBox(tkinstance)
+        self.pw_list = PWListBox(self.pwapp.master)
         self.pw_list.bind('<ButtonRelease-1>', _update_ring_selection)
 
     def _update_selected_ring_with_canvas_click(self, event):
@@ -114,13 +124,13 @@ class PWViewer():
 
 
 
-class PWCanvas(tkinter.Canvas):
+class PWCanvas(PWWidget, tkinter.Canvas):
     # basic assumptions of the canvas: origin at center, radial
     # positions specified by setting radius along pos. Y axis and
     # then performing clockwise rotation.
 
-    def __init__(self, tkinstance, width=None, height=None, row=None, column=None, columnspan=None, rowspan=None, **kwargs):
-        tkinter.Canvas.__init__(self, tkinstance, width=width, height=height, **kwargs) 
+    def __init__(self, width=None, height=None, row=None, column=None, columnspan=None, rowspan=None, **kwargs):
+        tkinter.Canvas.__init__(self, self.pwapp.master, width=width, height=height, **kwargs) 
         self.configure(scrollregion=(-400,-400,400,400)) # this will position origin at center
         # center crosshairs
         self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
@@ -149,11 +159,11 @@ class PWCanvas(tkinter.Canvas):
 
 
         # SIDE BAR:
-class PWListBox(tkinter.Frame):
+class PWListBox(PWWidget, tkinter.Frame):
     '''A listing of rings, using tkinter.Treeview for dumb reasons.'''
-    def __init__(self, tkinstance, row=None, column=None, columnspan=None, **kwargs):
+    def __init__(self, row=None, column=None, columnspan=None, **kwargs):
         # Parent frame for internal layout management
-        tkinter.Frame.__init__(self, tkinstance)
+        tkinter.Frame.__init__(self, self.pwapp.master)
 
         # Struct List
         # This is now using ttk.Treeview because tkinter listboxes are
@@ -211,26 +221,26 @@ class PWListBox(tkinter.Frame):
         self.list.heading(heading, text=text)
 
 
-class PWController():
+class PWController(PWWidget):
     '''PWController contains widgets which modify existing rings or create new
     ones and manages the callbacks which interconnect these and access the
     working_struct. PWController has no relevance within the tkinter context;
     the child control widgets can be laid out independently.'''
 
-    def __init__(self, tkinstance):
+    def __init__(self):
         # ring attribute sliders
         # Sliders modify selected ring's attributes in realtime;
         # if no ring is selected they just adjust the input value
         # and wait for the 'Submit' button to do anything with them.
-        self.pw_slider_radius = PWSlider(tkinstance, from_=200.0, to=1.0)
+        self.pw_slider_radius = PWSlider(from_=200.0, to=1.0)
         self.pw_slider_radius.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_count = PWDetailedSlider(tkinstance, from_=50.0, to=1.0)
+        self.pw_slider_count = PWDetailedSlider(from_=50.0, to=1.0)
         self.pw_slider_count.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_offset = PWSlider(tkinstance, from_=360.0, to=0.0)
+        self.pw_slider_offset = PWSlider(from_=360.0, to=0.0)
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
 
         # new ring submit button
-        self.pw_input_submit = PWSubmitButton(tkinstance, text="Submit")
+        self.pw_input_submit = PWSubmitButton(text="Submit")
 
         # bindings
         self.pw_slider_radius.scale.config(command=self.update_active_ring_radius)
@@ -270,14 +280,22 @@ class PWController():
         self.update_list_box()
 
 
-class PWSlider(tkinter.Frame):
+class PWSlider(tkinter.Frame, PWWidget):
     '''Slider with accompanying input box, native theme, and option to snap to
     integers.'''
-    def __init__(self, tkinstance, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
-        tkinter.Frame.__init__(self, tkinstance)
+    def __init__(self, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
+        print("PWSlider being initted; self.pwapp.master is: " + repr(self.pwapp.master))
+        super().__init__()
+        print("***super().__init__ just called; current dir:")
+        print(dir(self))
+        print("***Now printing repr(self.tk): " + repr(self.tk))
+        print("***Now printing LOCALS: " + repr(locals()))
         # self.row = kwargs.pop("row")
         # self.col = kwargs.pop("column")
         self.length = length
+        self.orient = orient
+        print("child scale being initted; self is: " + repr(self))
+        print("***orient= " + repr(self.orient))
         self.scale = ttk.Scale(self, orient=orient, length=self.length, command=self._update_input_box, takefocus=False, **kwargs)
         self.scale.grid(row=0, column=0, pady=4)
         # Input box
@@ -297,8 +315,8 @@ class PWSlider(tkinter.Frame):
 class PWDetailedSlider(PWSlider):
     '''Slider with addition of a context button for accessing additional config.
     Used for the 'count' controller.'''
-    def __init__(self, tkinstance, *args, **kwargs):
-        PWSlider.__init__(self, tkinstance, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        PWSlider.__init__(self, *args, **kwargs)
         self.details_button = ttk.Button(self, text="...", width=2)
         self.details_button.grid(row=0, column=0)
         self.scale.grid(row=1, column=0, pady=4)
@@ -312,15 +330,15 @@ class PWDetailedSlider(PWSlider):
         self.scale.config(length=(self.length - 30))
 
 
-class PWSubmitButton(ttk.Button):
+class PWSubmitButton(PWWidget, ttk.Button):
     '''New ring submit button.'''
 
 
-class PWAnimController(tkinter.Frame):
+class PWAnimController(PWWidget, tkinter.Frame):
     '''Combined selection box and animation control button. This widget will
     operate on the working_struct.'''
-    def __init__(self, tkinstance, values=None, row=None, column=None, columnspan=None):
-        tkinter.Frame.__init__(self, tkinstance)
+    def __init__(self, values=None, row=None, column=None, columnspan=None):
+        tkinter.Frame.__init__(self, self.pwapp.master)
         if values == None:
             methods = {"random": "Random",
                     "linear": "Linear",

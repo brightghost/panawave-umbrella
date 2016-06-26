@@ -59,8 +59,11 @@ class PanawaveApp:
     '''
     def __init__(self, master, file=None):
         self.master = master
-        self.create_ui()
+        # Pass self reference to the base PWWidget class, so it will be
+        # inherited by all PWWidgets. This greatly simplifies widget instantiation.
+        PWWidget.pwapp = self
         self.pw_interface_selected_rings = []
+        self.create_ui()
         self.working_struct = self.load_new_struct(file,
                 target_canvas=self.pw_canvas)
 
@@ -74,6 +77,7 @@ class PanawaveApp:
         self.tkapp.mainloop()
 
     def create_ui(self):
+
         master = self.master
         master.wm_title("Panawave Umbrella Editor")
         master.columnconfigure(0, weight=1, minsize=100)
@@ -85,7 +89,7 @@ class PanawaveApp:
             styler.theme_use("clam")
 
         # MENU BAR:
-        self.pw_menu_bar = Menu(master)
+        self.pw_menu_bar = Menu()
         self.pw_file_menu = Menu(self.pw_menu_bar, tearoff=0)
         self.pw_file_menu.add_command(label="Open...", command=self.open_file)
         self.pw_file_menu.add_command(label="Save as...", command=self.save_file)
@@ -96,44 +100,44 @@ class PanawaveApp:
         master.config(menu=self.pw_menu_bar)
 
         # MAIN VIEW:
-        self.pw_canvas = PWCanvas(master, row=0, column=0, rowspan=5)
-        self.console_button = tkinter.Button(master, text=">")
+        self.pw_canvas = PWCanvas(row=0, column=0, rowspan=5)
+        self.console_button = tkinter.Button(text=">")
         self.pw_canvas.create_window(-330, 330, anchor=SW, window=self.console_button)
 
         # SIDE BAR:
-        self.pw_list_box = PWListBox(master, row=0, column=1, columnspan=3)
+        self.pw_list_box = PWListBox(row=0, column=1, columnspan=3)
 
 
         # RING CONTROL:
-        self.pw_controller = PWController(master)
+        self.pw_controller = PWController()
         self.pw_controller.pw_slider_radius.grid(row=1, column=1)
         self.pw_controller.pw_slider_count.grid(row=1, column=2)
         self.pw_controller.pw_slider_offset.grid(row=1, column=3)
         self.pw_controller.pw_input_submit.grid(row=2, column=1, columnspan=3)
 
-        self.pw_anim_control = PWAnimController(master, row=3, column=1, columnspan=3)
+        self.pw_anim_control = PWAnimController(row=3, column=1, columnspan=3)
         # # animation control buttons, row 1 (on/off)
         # # set width manually so layout doesn't jump around when we
         # # change the text
-        # self.pw_orbit_toggle = Button(master, text="Stop",
+        # self.pw_orbit_toggle = Button(text="Stop",
         #         command=self.toggle_animation, width=5)
         # self.pw_orbit_toggle.grid(row=4, column=1)
 
         # # animation control buttons, row 2 (anim methods)
-        # self.pw_orbit_begin_random = Button(master, text="Random",
+        # self.pw_orbit_begin_random = Button(text="Random",
         #         width=5, command=self.orbit_randomly)
         # self.pw_orbit_begin_random.grid(row=5, column=1)
-        # self.pw_orbit_begin_linear = Button(master, text="Linear",
+        # self.pw_orbit_begin_linear = Button(text="Linear",
         #         width=5, command=self.orbit_linearly)
         # self.pw_orbit_begin_linear.grid(row=5, column=2)
 
-        # self.pw_orbit_begin_inverse_linear = Button(master,
+        # self.pw_orbit_begin_inverse_linear = Button(,
         #         text="Inverse Linear", width=5,
         #         command=self.orbit_inverse_linearly)
         # self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
 
         # # console
-        # self.pw_console = Entry(master)
+        # self.pw_console = Entry()
         # self.pw_console.grid(row=5, column=0, columnspan=1, sticky=(W,E))
         # self.pw_console.bind("<Return>", self.execute_console_input)
         # self.pw_console.bind("<Up>", self.navigate_console_history)
@@ -346,5 +350,5 @@ if __name__ == "__main__":
     print("initializing Panawave Umbrella Editor...")
     master = Tk()
     global our_app
-    our_app = PanawaveApp(master)
+    our_app = PanawaveApp()
 

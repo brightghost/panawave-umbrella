@@ -19,6 +19,6 @@ def pw_json_serializer(object):
 if __name__ == "__main__":
     print("initializing Panawave Umbrella Editor...")
     master = Tk()
-    global our_app
+    # global our_app
     our_app = PanawaveApp(master)
 
