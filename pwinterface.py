@@ -65,7 +65,7 @@ class PanawaveApp:
         self.pw_interface_selected_rings = []
         self.create_ui()
         self.working_struct = self.load_new_struct(file,
-                target_canvas=self.pw_canvas)
+                target_canvas=self.viewer.pw_canvas)
 
         # Interface history variables
         self.console_history = []
@@ -100,13 +100,14 @@ class PanawaveApp:
         master.config(menu=self.pw_menu_bar)
 
         # MAIN VIEW:
-        self.pw_canvas = PWCanvas(row=0, column=0, rowspan=5)
+        self.viewer = PWViewer()
+        # CANVAS
+        self.viewer.create_canvas(row=0, column=0, rowspan=5)
+        # LISTBOX
+        self.viewer.create_list(row=0, column=1, columnspan=3)
+        # CONSOLE BUTTON
         self.console_button = tkinter.Button(text=">")
-        self.pw_canvas.create_window(-330, 330, anchor=SW, window=self.console_button)
-
-        # SIDE BAR:
-        self.pw_list_box = PWListBox(row=0, column=1, columnspan=3)
-
+        self.viewer.pw_canvas.create_window(-330, 330, anchor=SW, window=self.console_button)
 
         # RING CONTROL:
         self.pw_controller = PWController()
@@ -172,9 +173,6 @@ class PanawaveApp:
         self.update_list_box()
         return self.working_struct
 
-# ===========================================================================
-# Reference shite left over below.
-
     def _update_clicked_canvas_item(self, event):
         '''Bound to clicks on the pw_canvas. Checks for the tk 'CURRENT' tag,
         which represents an item under the cursor, then update the
@@ -202,13 +200,16 @@ class PanawaveApp:
     def update_list_box(self):
         '''Rebuild the pw_list_box from the current contents of working_struct.
         ring_array . IID's are explicitly set to coincide with the StickerRing.id       to simplify lookups for click events.'''
-        for item in self.pw_list_box.get_children():
-            self.pw_list_box.delete(item)
+        for item in self.viewer.pw_list.get_children():
+            self.viewer.pw_list.delete(item)
         for i, key in enumerate(self.working_struct.ring_array, start=1):
             ring = self.working_struct.ring_array[key]
-            self.pw_list_box.insert(parent="", index=i, iid=int(ring.id), text=i,
+            self.viewer.pw_list.insert(parent="", index=i, iid=int(ring.id), text=i,
                     values=ring.as_tuple())
 
+
+# ===========================================================================
+# Reference shite left over below.
     def _update_ring_selection(self, event):
         '''Bound to click events on listbox. pw_list_box.selection()
         returns an IID; we explicitly set these when refreshing the list

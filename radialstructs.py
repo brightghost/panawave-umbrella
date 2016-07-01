@@ -240,6 +240,12 @@ class PanawaveStruct:
         new_ring = StickerRing(*evaluated_args)
         self.ring_array[str(new_ring.id)] = new_ring
 
+    def clear_selection(self):
+        '''un-select all rings. You need to handle redrawing after.'''
+        for ring in self.ring_array:
+            ring.selected = False
+
+
     # File Input/Output Methods:
 
     def write_out(self, output_file):

@@ -1,6 +1,6 @@
 import tkinter
-from tkinter import N,E,S,W, VERTICAL, HORIZONTAL # just a handful of things that are really easier to
-# ref in the base namespace
+from tkinter import N,E,S,W, VERTICAL, HORIZONTAL, END, CURRENT # just a handful of 
+# tkinter constants that are really easier to # ref in the base namespace
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
@@ -50,10 +50,15 @@ class PWViewer(PWWidget):
     PWListBox can be laid out independently.'''
 
     def __init__(self):
-        self.pw_canvas = PWCanvas(self.pwapp.master)
-        self.pw_canvas.bind("<Button-1>", _update_selected_ring_with_canvas_click)
-        self.pw_list = PWListBox(self.pwapp.master)
-        self.pw_list.bind('<ButtonRelease-1>', _update_ring_selection)
+        pass
+
+    def create_canvas(self, *args, **kwargs):
+        self.pw_canvas = PWCanvas(*args, **kwargs)
+        self.pw_canvas.bind("<Button-1>", self._update_selected_ring_with_canvas_click)
+
+    def create_list(self, *args, **kwargs):
+        self.pw_list = PWListBox(*args, **kwargs)
+        self.pw_list.bind('<ButtonRelease-1>', self._update_ring_selection_with_list_click)
 
     def _update_selected_ring_with_canvas_click(self, event):
         '''Formerly _update_clicked_canvas_item
@@ -72,8 +77,10 @@ class PWViewer(PWWidget):
                 clicked_ring_id = clicked_ring_tag.strip("ring-")
                 print("Adding to the selected_ring list the ring with key",
                         clicked_ring_id)
-                self.selected_ring = self.working_struct.ring_array[clicked_ring_id]
+                self.selected_ring = self.pwapp.working_struct.ring_array[clicked_ring_id] # Do we need to save this state here? Probably best not to duplicate it
+                self.selected_ring.selected = True
                 print("Updating selected_ring to", self.selected_ring)
+                self.pwapp.working_struct.draw(self.pw_canvas)
             except NameError:
                 # it's possible we'll click an object other than a sticker
                 return
@@ -99,14 +106,14 @@ class PWViewer(PWWidget):
         # http://stackoverflow.com/questions/13905741/accessing-class-variables-from-a-list-comprehension-in-the-class-definition
         # Just going to reset the .selected atribute on all rings then
         # set it again based on what's reported by the TreeView.
-        for ring in self.working_struct.ring_array.values():
+        for ring in self.pwapp.working_struct.ring_array.values():
             ring.selected = False
         for iid in list_selection_array:
-            selected_ring = self.working_struct.ring_array[iid]
+            selected_ring = self.pwapp.working_struct.ring_array[iid]
             self.pw_interface_selected_rings.append(selected_ring)
             selected_ring.selected = True
         self.pw_canvas.delete("all")
-        self.working_struct.draw(self.pw_canvas)
+        self.pwapp.working_struct.draw(self.pw_canvas)
 
     def _rebuild_list_box():
         '''Formerly update_list_box.
@@ -115,8 +122,8 @@ class PWViewer(PWWidget):
 
         for item in self.pw_list_box.get_children():
             self.pw_list_box.delete(item)
-        for i, key in enumerate(self.working_struct.ring_array, start=1):
-            ring = self.working_struct.ring_array[key]
+        for i, key in enumerate(self.pwapp.working_struct.ring_array, start=1):
+            ring = self.pwapp.working_struct.ring_array[key]
             self.pw_list_box.insert(parent="", index=i, iid=int(ring.id), text=i,
                     values=ring.as_tuple())
 
@@ -145,7 +152,7 @@ class PWCanvas(PWWidget, tkinter.Canvas):
 #         self.master = master
 #         self.create_ui(master)
 #         self.pw_interface_selected_rings = []
-#         self.working_struct = self.load_new_struct(file,
+#         self.pwapp.working_struct = self.load_new_struct(file,
 #                 target_canvas=self.pw_canvas)
 # 
 #         # Interface history variables
@@ -224,66 +231,67 @@ class PWListBox(PWWidget, tkinter.Frame):
 class PWController(PWWidget):
     '''PWController contains widgets which modify existing rings or create new
     ones and manages the callbacks which interconnect these and access the
-    working_struct. PWController has no relevance within the tkinter context;
-    the child control widgets can be laid out independently.'''
+    working_struct. Although it inherits from PWWidget, PWController has no
+    relevance within the tkinter context; the child control widgets are laid
+    out independently.'''
 
     def __init__(self):
         # ring attribute sliders
         # Sliders modify selected ring's attributes in realtime;
         # if no ring is selected they just adjust the input value
         # and wait for the 'Submit' button to do anything with them.
-        self.pw_slider_radius = PWSlider(from_=200.0, to=1.0)
+        self.pw_slider_radius = PWSlider(setter_callback=self.update_active_ring_radius, from_=200.0, to=1.0)
         self.pw_slider_radius.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_count = PWDetailedSlider(from_=50.0, to=1.0)
+        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, from_=50.0, to=1.0)
         self.pw_slider_count.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_offset = PWSlider(from_=360.0, to=0.0)
+        self.pw_slider_offset = PWSlider(setter_callback=self.update_active_ring_offset, from_=360.0, to=0.0)
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
 
         # new ring submit button
         self.pw_input_submit = PWSubmitButton(text="Submit")
+        self.pw_input_submit.config(command=self.submit_new_ring)
 
-        # bindings
-        self.pw_slider_radius.scale.config(command=self.update_active_ring_radius)
-        self.pw_slider_count.scale.config(command=self.update_active_ring_count)
-        self.pw_slider_offset.scale.config(command=self.update_active_ring_offset)
 
     def update_active_ring_radius(self, rad):
-        print("updating ring radius with value: ", rad)
-        if len(pw_interface_selected_rings) == 1:
-            pw_interface_selected_rings[0].set_radius(rad)
-        self.pw_input_radius.delete(0, END)
-        self.pw_input_radius.insert(0, rad)
+        if len(self.pwapp.pw_interface_selected_rings) == 1:
+            print("updating ring radius with value: ", rad)
+            self.pwapp.pw_interface_selected_rings[0].set_radius(rad)
+        else:
+            print("Not updating because not exactly one ring selected.")
 
     def update_active_ring_count(self, count):
-        if self.selected_ring is not None:
-            self.selected_ring.set_count(int(count))
-            self.selected_ring.draw(self.pw_canvas)
-        self.pw_input_count.delete(0, END)
-        self.pw_input_count.insert(0, count)
+        if len(self.pwapp.pw_interface_selected_rings) == 1:
+            print("updating ring count with value: ", count)
+            self.pwapp.pw_interface_selected_rings[0].set_count(int(count))
+            self.pwapp.pw_interface_selected_rings[0].draw(self.pw_canvas)
+        else:
+            print("Not updating because not exactly one ring selected.")
 
     def update_active_ring_offset(self, deg):
-        if self.selected_ring is not None:
-            self.selected_ring.set_offset(deg)
-            self.selected_ring.draw(self.pw_canvas)
-        self.pw_input_offset.delete(0, END)
-        self.pw_input_offset.insert(0, deg)
+        if len(self.pwapp.pw_interface_selected_rings) == 1:
+            print("updating ring offset with value: ", deg)
+            self.pwapp.pw_interface_selected_rings[0].set_offset(deg)
+            self.pwapp.pw_interface_selected_rings[0].draw(self.pw_canvas)
+        else:
+            print("Not updating because not exactly one ring selected.")
 
     def submit_new_ring(self, *args):
         '''validate the input and submit it to our current struct.
         will accept event objects from bindings but currently ignores
         them.'''
-        working_struct.add_ring(self.pw_input_radius.get(), \
-                self.pw_input_count.get(), \
-                self.pw_input_offset.get())
-        working_struct.draw(self.pw_canvas)
-        self.pw_input_radius.focus_set()
-        self.update_list_box()
+        self.pwapp.working_struct.add_ring(self.pw_slider_radius.get_value(), \
+                self.pw_slider_count.get_value(), \
+                self.pw_slider_offset.get_value())
+        self.pwapp.working_struct.draw(self.pwapp.viewer.pw_canvas)
+        self.pw_slider_radius.input_box.focus_set()
+        self.pwapp.update_list_box()
 
 
 class PWSlider(tkinter.Frame, PWWidget):
     '''Slider with accompanying input box, native theme, and option to snap to
-    integers.'''
-    def __init__(self, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
+    integers. Set the 'var' local property to a variable that should be adjusted
+    by the controller.'''
+    def __init__(self, setter_callback=None, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
         print("PWSlider being initted; self.pwapp.master is: " + repr(self.pwapp.master))
         super().__init__()
         print("***super().__init__ just called; current dir:")
@@ -292,24 +300,44 @@ class PWSlider(tkinter.Frame, PWWidget):
         print("***Now printing LOCALS: " + repr(locals()))
         # self.row = kwargs.pop("row")
         # self.col = kwargs.pop("column")
+        self.setter_callback = setter_callback
         self.length = length
         self.orient = orient
         print("child scale being initted; self is: " + repr(self))
         print("***orient= " + repr(self.orient))
-        self.scale = ttk.Scale(self, orient=orient, length=self.length, command=self._update_input_box, takefocus=False, **kwargs)
+        self.scale = ttk.Scale(self, orient=orient, length=self.length, command=self._slider_handler, takefocus=False, **kwargs)
         self.scale.grid(row=0, column=0, pady=4)
         # Input box
         self.input_box = tkinter.Entry(self, width=4)
         self.input_box.grid(row=1, column=0, sticky=N)
-        self.input_box.bind("<FocusOut>", self._update_slider)
+        self.input_box.bind("<FocusOut>", self._input_box_handler)
         self.grid(row=row, column=column, pady=4)
 
-    def _update_input_box(self, event):
-        '''Passes the value from slider to input box when adjusted.'''
-        self.input_box.set(self.get())
+    def set_value(self, val):
+        self.input_box.delete(0, END)
+        self.input_box.insert(0, val)
+        self.scale.set(val)
 
-    def _update_slider(self, event):
-        self.set(self.input_box.get())
+    def get_value(self):
+        '''TODO In principle this is maybe not the most robust approach.'''
+        return self.input_box.get()
+
+    def _slider_handler(self, event):
+        '''Passes the value from slider to input box and sets var when adjusted.'''
+        new_val = self.scale.get()
+        print("Updating input_box value due to slider adjustment, new val: ", new_val)
+        self.input_box.delete(0, END)
+        self.input_box.insert(0, new_val)
+        self.setter_callback(new_val)
+
+    def _input_box_handler(self, event):
+        '''Passes value from input box to slider and sets var when losing focus.'''
+        new_val = self.input_box.get()
+        if new_val == "":
+            new_val = 0
+        print("Updating scale value due to input_box adjustment, new val: ", new_val)
+        self.scale.set(new_val)
+        self.setter_callback(new_val)
 
 
 class PWDetailedSlider(PWSlider):
@@ -384,24 +412,24 @@ class PWAnimController(PWWidget, tkinter.Frame):
 
 
     def toggle_animation(self):
-        if self.working_struct.animating is True:
-            self.working_struct.stop_animation()
+        if self.pwapp.working_struct.animating is True:
+            self.pwapp.working_struct.stop_animation()
             self.pw_orbit_toggle.configure(text="Start")
         else:
-            self.working_struct.orbit_randomly()
+            self.pwapp.working_struct.orbit_randomly()
             self.pw_orbit_toggle.configure(text="Stop")
 
     def orbit_randomly(self):
         self.pw_orbit_toggle.configure(text="Stop")
-        self.working_struct.orbit(method="random")
+        self.pwapp.working_struct.orbit(method="random")
 
     def orbit_linearly(self):
         self.pw_orbit_toggle.configure(text="Stop")
-        self.working_struct.orbit(method="linear")
+        self.pwapp.working_struct.orbit(method="linear")
 
     def orbit_inverse_linearly(self):
         self.pw_orbit_toggle.configure(text="Stop")
-        self.working_struct.orbit(method="inverse-linear")
+        self.pwapp.working_struct.orbit(method="inverse-linear")
 
     def execute_console_input(self, *args):
         '''execute arbitrary commands from the console box,
@@ -414,7 +442,7 @@ class PWAnimController(PWWidget, tkinter.Frame):
             e = sys.exc_info()
             print("***Console input generated the following error:***")
             print(e)
-        self.working_struct.draw(self.pw_canvas)
+        self.pwapp.working_struct.draw(self.pw_canvas)
         self.update_list_box()
         sleep(.5)
         self.console_history_offset = 0
