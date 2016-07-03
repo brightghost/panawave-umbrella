@@ -207,6 +207,23 @@ class PanawaveApp:
             self.viewer.pw_list.insert(parent="", index=i, iid=int(ring.id), text=i,
                     values=ring.as_tuple())
 
+    def clear_selection(self):
+        '''Clear selection state of working_struct as well as PWViewer and PWController'''
+        self.working_struct.clear_selection()
+        self.pw_controller.clear_inputs()
+        self.viewer.redraw()
+
+    def set_selection(ringlist):
+        '''Set selection state of working_struct and update interface elements accordingly.'''
+        self.working_struct.set_selection(ringlist)
+        self.viewer.redraw()
+        if len(ringlist) is 1:
+            self.pw_controller.enable()
+            self.pw_controller.set_inputs(ringlist[0].radius, ringlist[0].count, ringlist[0].offset)
+        else:
+            self.pw_controller.clear_inputs()
+            self.pw_controller.disable()
+
 
 # ===========================================================================
 # Reference shite left over below.
