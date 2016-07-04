@@ -1,6 +1,6 @@
 import tkinter
-from tkinter import N,E,S,W, VERTICAL, HORIZONTAL, END, CURRENT # just a handful of 
-# tkinter constants that are really easier to # ref in the base namespace
+# tkinter constants that are easier to ref in the base namespace
+from tkinter import N,E,S,W, VERTICAL, HORIZONTAL, END, CURRENT, DISABLED, NORMAL
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
@@ -117,8 +117,13 @@ class PWViewer(PWWidget):
             self._rebuild_list_box()
             # Reset or disable input sliders if ring(s) selected
             if len(self.pwapp.pw_interface_selected_rings) is 1:
-                self.pwapp.pw_controller.clear_inputs()
+                sel_ring = self.pwapp.pw_interface_selected_rings[0]
+                print("Enabling and setting input sliders to selected ring values.")
+                self.pwapp.pw_controller.enable_inputs()
+                self.pwapp.pw_controller.set_inputs(sel_ring.radius, sel_ring.count, sel_ring.offsetDegrees)
             elif len(self.pwapp.pw_interface_selected_rings) > 1:
+                print("Disabling inputs due to multiple selection.")
+                self.pwapp.pw_controller.clear_inputs()
                 self.pwapp.pw_controller.disable_inputs()
         else:
             print("No CURRENT tag returned, must not have clicked an object.")
@@ -136,6 +141,7 @@ class PWViewer(PWWidget):
 
     def _rebuild_pw_canvas(self):
         '''Clear and then redraw the working_struct to the canvas.'''
+        print("REDRAWING CANVAS")
         self.pw_canvas.delete("all")
         self.pwapp.working_struct.draw(self.pw_canvas)
 
@@ -189,9 +195,7 @@ class PWViewer(PWWidget):
             self.pw_interface_selected_rings.append(selected_ring)
             selected_ring.selected = True
         self._pw_input_reset()
-        # TODO self._rebuild_pw_canvas() instead?
-        self.pw_canvas.delete("all")
-        self.pwapp.working_struct.draw(self.pw_canvas)
+        self._rebuild_pw_canvas()
 
     def _pw_interface_clear_selection(self, event=None):
         '''Bound to ESC when pw_listbox has selection.'''
@@ -236,37 +240,39 @@ class PWViewer(PWWidget):
 
     # !!!!!!!!!!!!!!!!!! TODO TODO TODO !!!!!!!!!!!!!!!!!!!
     # Are the following three methods being used? Think they need to migrate
+
     # to PanawaveStruct
-    def update_active_ring_radius(self, rad):
-        print("updating ring radius with value: ", rad)
-        if len(self.pw_interface_selected_rings) == 1:
-            self.pw_interface_selected_rings[0].set_radius(rad)
-        self.pw_input_radius.delete(0, END)
-        self.pw_input_radius.insert(0, rad)
-        self._rebuild_pw_canvas()
-        self._rebuild_list_box()
+    # Moved to PWController because this is only called by the widgets therein.
+    # def update_active_ring_radius(self, rad):
+    #     print("updating ring radius with value: ", rad)
+    #     if len(self.pw_interface_selected_rings) == 1:
+    #         self.pw_interface_selected_rings[0].set_radius(rad)
+    #     self.pw_input_radius.delete(0, END)
+    #     self.pw_input_radius.insert(0, rad)
+    #     self._rebuild_pw_canvas()
+    #     self._rebuild_list_box()
 
-    def update_active_ring_count(self, count):
-        if len(self.pw_interface_selected_rings) == 1:
-            self.pw_interface_selected_rings[0].set_count(count)
-        if self.selected_ring is not None:
-            self.selected_ring.set_count(int(count))
-            self.selected_ring.draw(self.pw_canvas)
-        self.pw_input_count.delete(0, END)
-        self.pw_input_count.insert(0, count)
-        self._rebuild_pw_canvas()
-        self._rebuild_list_box()
+    # def update_active_ring_count(self, count):
+    #     if len(self.pw_interface_selected_rings) == 1:
+    #         self.pw_interface_selected_rings[0].set_count(count)
+    #     if self.selected_ring is not None:
+    #         self.selected_ring.set_count(int(count))
+    #         self.selected_ring.draw(self.pw_canvas)
+    #     self.pw_input_count.delete(0, END)
+    #     self.pw_input_count.insert(0, count)
+    #     self._rebuild_pw_canvas()
+    #     self._rebuild_list_box()
 
-    def update_active_ring_offset(self, deg):
-        if len(self.pw_interface_selected_rings) == 1:
-            self.pw_interface_selected_rings[0].set_offset(deg)
-        if self.selected_ring is not None:
-            self.selected_ring.set_offset(deg)
-            self.selected_ring.draw(self.pw_canvas)
-        self.pw_input_offset.delete(0, END)
-        self.pw_input_offset.insert(0, deg)
-        self._rebuild_pw_canvas()
-        self._rebuild_list_box()
+    # def update_active_ring_offset(self, deg):
+    #     if len(self.pw_interface_selected_rings) == 1:
+    #         self.pw_interface_selected_rings[0].set_offset(deg)
+    #     if self.selected_ring is not None:
+    #         self.selected_ring.set_offset(deg)
+    #         self.selected_ring.draw(self.pw_canvas)
+    #     self.pw_input_offset.delete(0, END)
+    #     self.pw_input_offset.insert(0, deg)
+    #     self._rebuild_pw_canvas()
+    #     self._rebuild_list_box()
 
 
 
@@ -402,6 +408,7 @@ class PWController(PWWidget):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
             print("updating ring radius with value: ", rad)
             self.pwapp.pw_interface_selected_rings[0].set_radius(rad)
+            self.pwapp.viewer._rebuild_pw_canvas()
         else:
             print("Not updating because not exactly one ring selected.")
 
@@ -410,6 +417,7 @@ class PWController(PWWidget):
             print("updating ring count with value: ", count)
             self.pwapp.pw_interface_selected_rings[0].set_count(int(count))
             self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
+            self.pwapp.viewer._rebuild_pw_canvas()
         else:
             print("Not updating because not exactly one ring selected.")
 
@@ -418,6 +426,7 @@ class PWController(PWWidget):
             print("updating ring offset with value: ", deg)
             self.pwapp.pw_interface_selected_rings[0].set_offset(deg)
             self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
+            self.pwapp.viewer._rebuild_pw_canvas()
         else:
             print("Not updating because not exactly one ring selected.")
 
@@ -466,14 +475,14 @@ class PWController(PWWidget):
         '''Disable input controls.'''
         sliders = (self.pw_slider_radius, self.pw_slider_count, self.pw_slider_offset)
         for slider in sliders:
-            slider.scale.configure(state=DISABLED)
+            slider.scale.state(["disabled"]) # well this is stupid...
             slider.input_box.configure(state=DISABLED)
 
     def enable_inputs(self):
         ''''Enable input controls.'''
         sliders = (self.pw_slider_radius, self.pw_slider_count, self.pw_slider_offset)
         for slider in sliders:
-            slider.scale.configure(state=NORMAL)
+            slider.scale.state(["!disabled"]) # ...and even stupider!
             slider.input_box.configure(state=NORMAL)
 
 
