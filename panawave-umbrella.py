@@ -30,7 +30,7 @@ def tracefunc(frame, event, arg, indent=[0]):
 
 if __name__ == "__main__":
     print("initializing Panawave Umbrella Editor...")
-    profile == False
+    profile = False
     if profile == True:
         sys.setprofile(tracefunc)
     master = Tk()
