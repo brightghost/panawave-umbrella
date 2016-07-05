@@ -467,10 +467,6 @@ class PWSlider(tkinter.Frame, PWWidget):
     def __init__(self, setter_callback=None, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
         print("PWSlider being initted; self.pwapp.master is: " + repr(self.pwapp.master))
         super().__init__()
-        print("***super().__init__ just called; current dir:")
-        print(dir(self))
-        print("***Now printing repr(self.tk): " + repr(self.tk))
-        print("***Now printing LOCALS: " + repr(locals()))
         # self.row = kwargs.pop("row")
         # self.col = kwargs.pop("column")
         self.setter_callback = setter_callback
