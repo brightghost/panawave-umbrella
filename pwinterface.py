@@ -94,7 +94,7 @@ class PanawaveApp:
         # LISTBOX
         self.viewer.create_list(row=0, column=1, columnspan=3)
         # CONSOLE BUTTON
-        self.console_button = tkinter.Button(text=">")
+        self.console_button = ttk.Button(text=">", width=2)
         self.viewer.pw_canvas.create_window(-330, 330, anchor=SW, window=self.console_button)
 
         # RING CONTROL:
