@@ -286,9 +286,9 @@ class PWCanvas(PWWidget, tkinter.Canvas):
     # positions specified by setting radius along pos. Y axis and
     # then performing clockwise rotation.
 
-    def __init__(self, width=800, height=800, row=None, column=None, columnspan=None, rowspan=None, **kwargs):
+    def __init__(self, width=600, height=600, row=None, column=None, columnspan=None, rowspan=None, **kwargs):
         tkinter.Canvas.__init__(self, self.pwapp.master, width=width, height=height, **kwargs)
-        self.configure(scrollregion=(-400,-400,400,400)) # this will position origin at center
+        self.configure(scrollregion=(-300,-300,300,300)) # this will position origin at center
         # center crosshairs
         self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
         self.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
