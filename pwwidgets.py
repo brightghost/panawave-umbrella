@@ -481,6 +481,13 @@ class PWSlider(tkinter.Frame, PWWidget):
         self.input_box.grid(row=1, column=0, sticky=N)
         self.input_box.bind("<FocusOut>", self._input_box_handler)
         self.grid(row=row, column=column, pady=4)
+        # Initialize with minimum value. Otherwise these are set to null.
+        if kwargs['from_']:
+            print("Setting initial slider value to: " + str(kwargs['to']))
+            self.set_value(kwargs['to'])
+        else:
+            print("Setting initial slider value to 0 as no 'to' was declared.")
+            self.set_value(0)
 
     def set_value(self, val):
         self.input_box.delete(0, END)
@@ -524,7 +531,7 @@ class PWDetailedSlider(PWSlider):
         print("Initial slider and button height being reported as: ", self.scale.winfo_height(), self.details_button.winfo_height())
         # button height is 30, at least on linux. It would be better to
         # reference details_button.winfo_height(), but apparently this value is
-        # not calculated until the window is drawn and returns 1 here.
+        # not calculated until the window is drawn and returns 1 if used here.
         self.scale.config(length=(self.length - 30))
 
 
