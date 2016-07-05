@@ -433,15 +433,6 @@ class PWController(PWWidget):
         self.pw_slider_radius.input_box.focus_set()
         self.pwapp.update_list_box()
 
-    def toggle_animation(self):
-        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
-            self.pwapp.working_struct.stop_animation()
-            self.pwapp.pwanimcontroller.pw_orbit_toggle.configure(text="Start")
-        else:
-            # TODO we need to actually call the prior anim method!
-            self.pwapp.working_struct.orbit_randomly()
-            self.pwapp.pwanimcontroller.pw_orbit_toggle.configure(text="Stop")
-
     def set_inputs(self, radius, count, offset):
         '''Update input widgets to reflect selected values. Controls should be explicitly enabled with enable_inputs() if appropriate'''
         sliders = (self.pw_slider_radius, self.pw_slider_count, self.pw_slider_offset)
@@ -580,8 +571,10 @@ class PWAnimController(PWWidget, tkinter.Frame):
     def toggle_animation(self):
         if self.pwapp.working_struct.ephemeral_state['animating'] is True:
             self.pwapp.working_struct.stop_animation()
+            self.pwapp.pw_anim_control.toggle_button.configure(text="Start")
         else:
             self.pwapp.working_struct.orbit(method=self.methods[self.combo.get()])
+            self.pwapp.pw_anim_control.toggle_button.configure(text="Stop")
 
 # =============================================================================
 # Reference shite copied from the previous implementation below. All should be
