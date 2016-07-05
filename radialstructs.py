@@ -307,10 +307,13 @@ class PanawaveStruct:
             speed_step = 1 / len(self.ring_array)
             for index, ring in enumerate(self.ring_array.values()):
                 ring.radial_speed = speed_step * index
-        elif method == "inverse-linear":
+        elif method == "reverse-linear":
             speed_step = 1 / len(self.ring_array)
             for index, ring in enumerate(self.ring_array.values()):
                 ring.radial_speed = speed_step * (len(self.ring_array) - index)
+        else:
+            print("Received an invalid orbit method: '" + method + "'. exiting.")
+            return
         # Linear speed, units/sec.
         if canvas is None:
             canvas = self.canvas

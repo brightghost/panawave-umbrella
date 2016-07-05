@@ -287,7 +287,7 @@ class PWCanvas(PWWidget, tkinter.Canvas):
     # then performing clockwise rotation.
 
     def __init__(self, width=800, height=800, row=None, column=None, columnspan=None, rowspan=None, **kwargs):
-        tkinter.Canvas.__init__(self, self.pwapp.master, width=width, height=height, **kwargs) 
+        tkinter.Canvas.__init__(self, self.pwapp.master, width=width, height=height, **kwargs)
         self.configure(scrollregion=(-400,-400,400,400)) # this will position origin at center
         # center crosshairs
         self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
@@ -297,24 +297,7 @@ class PWCanvas(PWWidget, tkinter.Canvas):
         # will probably need to implement this binding in order to scale
         # drawn elements as the window resized.
 
-#     def __init__(self, master, file=None):
-#         self.master = master
-#         self.create_ui(master)
-#         self.pw_interface_selected_rings = []
-#         self.pwapp.working_struct = self.load_new_struct(file,
-#                 target_canvas=self.pw_canvas)
-# 
-#         # Interface history variables
-#         self.console_history = []
-#         self.console_history_offset = 0
-# 
-#         # DEBUG IPython Console:
-#         embed()
-# 
-#         self.tkapp.mainloop()
 
-
-        # SIDE BAR:
 class PWListBox(PWWidget, tkinter.Frame):
     '''A listing of rings, using tkinter.Treeview for dumb reasons.'''
     def __init__(self, row=None, column=None, columnspan=None, **kwargs):
@@ -567,13 +550,13 @@ class PWAnimController(PWWidget, tkinter.Frame):
     def __init__(self, values=None, row=None, column=None, columnspan=None):
         tkinter.Frame.__init__(self, self.pwapp.master)
         if values == None:
-            methods = {"random": "Random",
-                    "linear": "Linear",
-                    "reverse-linear": "Reverse Linear"
+            self.methods = {"Random": "random",
+                    "Linear": "linear",
+                    "Reverse Linear": "reverse-linear"
                     }
         else:
-            methods = values
-        self.combo = ttk.Combobox(self, values=list(methods.values()), state="readonly", width=15) # apparently no way to not set a width? default is 20
+            self.methods = values
+        self.combo = ttk.Combobox(self, values=list(self.methods.keys()), state="readonly", width=15) # apparently no way to not set a width? default is 20
         self.combo.grid(row=0, column=0, sticky=(E,W), pady=2)
         # self.combo.pack(expand=True, fill='x', side='left', anchor=W)
         self.combo.current(1) # init with 1st item selected
@@ -588,90 +571,84 @@ class PWAnimController(PWWidget, tkinter.Frame):
 
     def _set_anim_method(self, method):
         '''Restart the animation with the new method if animation is currently active; otherwise don't do anything.'''
-        working_struct.ephemeral_state['anim_method'] = method
-        if working_struct.ephemeral_state['animating'] is True:
-            working_struct.stop_animation()
-            working_struct.orbit(method=ephemeral_state['anim_method'])
+        self.pwapp.working_struct.ephemeral_state['anim_method'] = method
+        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
+            self.pwapp.working_struct.stop_animation()
+            self.pwapp.working_struct.orbit(method=ephemeral_state['anim_method'])
 
     def toggle_animation(self):
-        if working_struct.ephemeral_state['animating'] is True:
-            working_struct.stop_animation()
+        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
+            self.pwapp.working_struct.stop_animation()
         else:
-            working_struct.orbit(method=self.combo.get())
+            self.pwapp.working_struct.orbit(method=self.methods[self.combo.get()])
 
 # =============================================================================
 # Reference shite copied from the previous implementation below. All should be
 # migrated to new classes.
 
 
-
-
-
-
-
-
-    def toggle_animation(self):
-        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
-            self.pwapp.working_struct.stop_animation()
-            self.pw_orbit_toggle.configure(text="Start")
-        else:
-            self.pwapp.working_struct.orbit()
-            self.pw_orbit_toggle.configure(text="Stop")
-
-    def orbit_randomly(self):
-        self.pw_orbit_toggle.configure(text="Stop")
-        self.pwapp.working_struct.orbit(method="random")
-
-    def orbit_linearly(self):
-        self.pw_orbit_toggle.configure(text="Stop")
-        self.pwapp.working_struct.orbit(method="linear")
-
-    def orbit_inverse_linearly(self):
-        self.pw_orbit_toggle.configure(text="Stop")
-        self.pwapp.working_struct.orbit(method="inverse-linear")
-
-    def execute_console_input(self, *args):
-        '''execute arbitrary commands from the console box,
-        update the UI, and clear input's contents'''
-        statement = self.pw_console.get()
-        self.console_history.append(statement)
-        try:
-            eval(statement)
-        except:
-            e = sys.exc_info()
-            print("***Console input generated the following error:***")
-            print(e)
-        self.pwapp.working_struct.draw(self.pw_canvas)
-        self.update_list_box()
-        sleep(.5)
-        self.console_history_offset = 0
-        self.pw_console.delete(0, END)
-
-    def navigate_console_history(self, event):
-        '''walk through input history and replace pw_console contents
-        the offset is stored as a negative integer, used directly as
-        a reverse index. This is fine because although the list length
-        changes every time we input a command, we're not caring about
-        saving the history index then anyway.'''
-        print("keypress received: ", event.keysym)
-        if event.keysym == "Up":
-            new_offset = self.console_history_offset - 1
-        elif event.keysym == "Down":
-            new_offset = self.console_history_offset + 1
-        print("testing offset: ", new_offset)
-        hist = self.console_history
-        hist_len = len(hist)
-        print("hist len: ", hist_len)
-        if new_offset >= 0:
-            # return to a blank slate if we arrive back at the
-            # end of the history.
-            self.pw_input_offset = 0
-            self.pw_console.delete(0, END)
-            print("reset offset to zero.")
-            return
-        if (0 > new_offset >= -hist_len):
-            self.console_history_offset = new_offset
-            self.pw_console.delete(0, END)
-            self.pw_console.insert(END, hist[new_offset])
-            print ("decided offset ", new_offset, " is valid.")
+#    def toggle_animation(self):
+#        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
+#            self.pwapp.working_struct.stop_animation()
+#            self.pw_orbit_toggle.configure(text="Start")
+#        else:
+#            self.pwapp.working_struct.orbit()
+#            self.pw_orbit_toggle.configure(text="Stop")
+#
+#    def orbit_randomly(self):
+#        self.pw_orbit_toggle.configure(text="Stop")
+#        self.pwapp.working_struct.orbit(method="random")
+#
+#    def orbit_linearly(self):
+#        self.pw_orbit_toggle.configure(text="Stop")
+#        self.pwapp.working_struct.orbit(method="linear")
+#
+#    def orbit_inverse_linearly(self):
+#        self.pw_orbit_toggle.configure(text="Stop")
+#        self.pwapp.working_struct.orbit(method="inverse-linear")
+#
+#    def execute_console_input(self, *args):
+#        '''execute arbitrary commands from the console box,
+#        update the UI, and clear input's contents'''
+#        statement = self.pw_console.get()
+#        self.console_history.append(statement)
+#        try:
+#            eval(statement)
+#        except:
+#            e = sys.exc_info()
+#            print("***Console input generated the following error:***")
+#            print(e)
+#        self.pwapp.working_struct.draw(self.pw_canvas)
+#        self.update_list_box()
+#        sleep(.5)
+#        self.console_history_offset = 0
+#        self.pw_console.delete(0, END)
+#
+#    def navigate_console_history(self, event):
+#        '''walk through input history and replace pw_console contents
+#        the offset is stored as a negative integer, used directly as
+#        a reverse index. This is fine because although the list length
+#        changes every time we input a command, we're not caring about
+#        saving the history index then anyway.'''
+#        print("keypress received: ", event.keysym)
+#        if event.keysym == "Up":
+#            new_offset = self.console_history_offset - 1
+#        elif event.keysym == "Down":
+#            new_offset = self.console_history_offset + 1
+#        print("testing offset: ", new_offset)
+#        hist = self.console_history
+#        hist_len = len(hist)
+#        print("hist len: ", hist_len)
+#        if new_offset >= 0:
+#            # return to a blank slate if we arrive back at the
+#            # end of the history.
+#            self.pw_input_offset = 0
+#            self.pw_console.delete(0, END)
+#            print("reset offset to zero.")
+#            return
+#        if (0 > new_offset >= -hist_len):
+#            self.console_history_offset = new_offset
+#            self.pw_console.delete(0, END)
+#            self.pw_console.insert(END, hist[new_offset])
+#            print ("decided offset ", new_offset, " is valid.")
 
