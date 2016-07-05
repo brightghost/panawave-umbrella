@@ -393,7 +393,7 @@ class PWController(PWWidget):
             self.pwapp.pw_interface_selected_rings[0].set_radius(rad)
             self.pwapp.viewer._rebuild_pw_canvas()
         else:
-            print("Not updating because not exactly one ring selected.")
+            print("Not updating ring properties because not exactly one ring selected.")
 
     def update_active_ring_count(self, count):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
@@ -402,7 +402,7 @@ class PWController(PWWidget):
             self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
             self.pwapp.viewer._rebuild_pw_canvas()
         else:
-            print("Not updating because not exactly one ring selected.")
+            print("Not updating ring properties because not exactly one ring selected.")
 
     def update_active_ring_offset(self, deg):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
@@ -411,7 +411,7 @@ class PWController(PWWidget):
             self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
             self.pwapp.viewer._rebuild_pw_canvas()
         else:
-            print("Not updating because not exactly one ring selected.")
+            print("Not updating ring properties because not exactly one ring selected.")
 
     def submit_new_ring(self, *args):
         '''validate the input and submit it to our current struct.
