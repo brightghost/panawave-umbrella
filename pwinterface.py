@@ -60,7 +60,9 @@ class PanawaveApp:
         # DEBUG IPython Console:
         embed()
 
-        self.tkapp.mainloop()
+        # TODO somehow this isn't actually being used...and I'm  not entirely
+        # clear where the tk loop *is* entered!
+        # self.tkapp.mainloop()
 
     def create_ui(self):
 
