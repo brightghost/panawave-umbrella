@@ -528,6 +528,7 @@ class PWDetailedSlider(PWSlider):
     def __init__(self, *args, **kwargs):
         PWSlider.__init__(self, *args, **kwargs)
         self.details_button = ttk.Button(self, text="...", width=2)
+        self.details_button.configure(takefocus=0)# skip when tabbing thru fields
         self.details_button.grid(row=0, column=0)
         self.scale.grid(row=1, column=0, pady=4)
         self.input_box.grid(row=2, column=0)
