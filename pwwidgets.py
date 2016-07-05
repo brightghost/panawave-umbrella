@@ -545,6 +545,7 @@ class PWAnimController(PWWidget, tkinter.Frame):
     def __init__(self, values=None, row=None, column=None, columnspan=None):
         tkinter.Frame.__init__(self, self.pwapp.master)
         if values == None:
+            # TODO: We need to use an ordered dict to keep this in a consistent order!
             self.methods = {"Random": "random",
                     "Linear": "linear",
                     "Reverse Linear": "reverse-linear"
@@ -554,22 +555,25 @@ class PWAnimController(PWWidget, tkinter.Frame):
         self.combo = ttk.Combobox(self, values=list(self.methods.keys()), state="readonly", width=15) # apparently no way to not set a width? default is 20
         self.combo.grid(row=0, column=0, sticky=(E,W), pady=2)
         # self.combo.pack(expand=True, fill='x', side='left', anchor=W)
-        self.combo.current(1) # init with 1st item selected
+        self.combo.current(0) # init with 1st item selected
         self.combo.bind("<<ComboboxSelected>>", self._set_anim_method)
         self.toggle_button = ttk.Button(self, text="Start", width=5, command=self.toggle_animation)
         self.toggle_button.grid(row=0, column=1, rowspan=2, padx=4, pady=2)
-        self.speedslider = ttk.Scale(self, orient=HORIZONTAL, takefocus=False)
-        self.speedslider.set(.5) # init in middle
+        self.speedslider = ttk.Scale(self, orient=HORIZONTAL, from_=0, to=3, takefocus=False, command=self._set_anim_speed)
+        self.speedslider.set(1.5) # init in middle
         self.speedslider.grid(row=1, column=0, sticky=(W,E), pady=2)
         self.grid(row=row, column=column, columnspan=columnspan, sticky=(E,W), pady=4)
         self.columnconfigure(0, weight=1)
 
-    def _set_anim_method(self, method):
-        '''Restart the animation with the new method if animation is currently active; otherwise don't do anything.'''
+    def _set_anim_method(self, event, method):
+        '''Adjust animation method of working_struct and restart animation with the new method if currently active.'''
         self.pwapp.working_struct.ephemeral_state['anim_method'] = method
-        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
-            self.pwapp.working_struct.stop_animation()
-            self.pwapp.working_struct.orbit(method=ephemeral_state['anim_method'])
+        self.restart_if_animating()
+
+    def _set_anim_speed(self, speed):
+        '''Adjust animation speed scaler of working_struct and restart animation if currently active. Currently, the default for this value is 1.5 so this is mapped to the center of the slider.'''
+        self.pwapp.working_struct.persistent_state['master_orbit_speed'] = float(speed) # stupid ttk.Scale returns a string
+        self.restart_if_animating()
 
     def toggle_animation(self):
         if self.pwapp.working_struct.ephemeral_state['animating'] is True:
@@ -579,30 +583,16 @@ class PWAnimController(PWWidget, tkinter.Frame):
             self.pwapp.working_struct.orbit(method=self.methods[self.combo.get()])
             self.pwapp.pw_anim_control.toggle_button.configure(text="Stop")
 
+
+    def restart_if_animating(self):
+        '''Restart animation to incorporate value adjustments. Do nothing if not animating.'''
+        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
+            self.pwapp.working_struct.stop_animation()
+            self.pwapp.working_struct.orbit(method=self.pwapp.working_struct.ephemeral_state['anim_method'])
+
 # =============================================================================
 # Reference shite copied from the previous implementation below. All should be
 # migrated to new classes.
-
-
-#    def toggle_animation(self):
-#        if self.pwapp.working_struct.ephemeral_state['animating'] is True:
-#            self.pwapp.working_struct.stop_animation()
-#            self.pw_orbit_toggle.configure(text="Start")
-#        else:
-#            self.pwapp.working_struct.orbit()
-#            self.pw_orbit_toggle.configure(text="Stop")
-#
-#    def orbit_randomly(self):
-#        self.pw_orbit_toggle.configure(text="Stop")
-#        self.pwapp.working_struct.orbit(method="random")
-#
-#    def orbit_linearly(self):
-#        self.pw_orbit_toggle.configure(text="Stop")
-#        self.pwapp.working_struct.orbit(method="linear")
-#
-#    def orbit_inverse_linearly(self):
-#        self.pw_orbit_toggle.configure(text="Stop")
-#        self.pwapp.working_struct.orbit(method="inverse-linear")
 #
 #    def execute_console_input(self, *args):
 #        '''execute arbitrary commands from the console box,

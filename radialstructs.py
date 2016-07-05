@@ -209,7 +209,8 @@ class PanawaveStruct:
         # This dictionary is intended for variables that can be discarded when
         # saved to file.
         self.ephemeral_state = {
-            "animating": False
+            "animating": False,
+            "anim_method" : "linear"
             }
 
     def draw(self, target_canvas=None):
