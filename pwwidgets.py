@@ -396,7 +396,7 @@ class PWController(PWWidget):
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
 
         # new ring submit button
-        self.pw_input_submit = PWSubmitButton(text="Submit")
+        self.pw_input_submit = PWSubmitButton(text="Create")
         self.pw_input_submit.config(command=self.submit_new_ring)
 
 
