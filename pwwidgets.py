@@ -388,11 +388,11 @@ class PWController(PWWidget):
         # Sliders modify selected ring's attributes in realtime;
         # if no ring is selected they just adjust the input value
         # and wait for the 'Submit' button to do anything with them.
-        self.pw_slider_radius = PWSlider(setter_callback=self.update_active_ring_radius, from_=200.0, to=1.0)
+        self.pw_slider_radius = PWSlider(setter_callback=self.update_active_ring_radius, quantize=2, from_=200.0, to=1.0)
         self.pw_slider_radius.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, from_=50.0, to=1.0)
+        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, quantize=0, from_=50.0, to=1.0)
         self.pw_slider_count.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_offset = PWSlider(setter_callback=self.update_active_ring_offset, from_=360.0, to=0.0)
+        self.pw_slider_offset = PWSlider(setter_callback=self.update_active_ring_offset, quantize=1, from_=360.0, to=0.0)
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
 
         # new ring submit button
@@ -475,9 +475,10 @@ class PWController(PWWidget):
 
 class PWSlider(tkinter.Frame, PWWidget):
     '''Slider with accompanying input box, native theme, and option to snap to
-    integers. Set the 'var' local property to a variable that should be adjusted
-    by the controller.'''
-    def __init__(self, setter_callback=None, orient=VERTICAL, length=120, row=None, column=None, **kwargs):
+    integers. Set 'quantize' to indicate a max number of significant digits
+    (e.g '3' for '3.556', '0' for '3'), and the setter_callback to a function
+    which should receive the final value.'''
+    def __init__(self, setter_callback=None, orient=VERTICAL, length=120, row=None, column=None, quantize=None, **kwargs):
         print("PWSlider being initted; self.pwapp.master is: " + repr(self.pwapp.master))
         super().__init__()
         # self.row = kwargs.pop("row")
@@ -485,8 +486,7 @@ class PWSlider(tkinter.Frame, PWWidget):
         self.setter_callback = setter_callback
         self.length = length
         self.orient = orient
-        print("child scale being initted; self is: " + repr(self))
-        print("***orient= " + repr(self.orient))
+        self.quantize = quantize
         self.scale = ttk.Scale(self, orient=orient, length=self.length, command=self._slider_handler, takefocus=False, **kwargs)
         self.scale.grid(row=0, column=0, pady=4)
         # Input box
@@ -497,7 +497,7 @@ class PWSlider(tkinter.Frame, PWWidget):
         # Initialize with minimum value. Otherwise these are set to null.
         if kwargs['from_']:
             print("Setting initial slider value to: " + str(kwargs['to']))
-            self.set_value(kwargs['to'])
+            self.set_value(self._quantize_value(kwargs['to']))
         else:
             print("Setting initial slider value to 0 as no 'to' was declared.")
             self.set_value(0)
@@ -515,9 +515,20 @@ class PWSlider(tkinter.Frame, PWWidget):
         '''TODO In principle this is maybe not the most robust approach.'''
         return self.input_box.get()
 
+    def _quantize_value(self, val):
+        if self.quantize is not None:
+            print("Quantizing value to nearest " + str(self.quantize))
+            new_val = round(val, self.quantize)
+            if new_val % 1 == 0:
+                new_val = int(new_val)
+            print("Raw value: " + str(val) + "; quantized value: " + str(new_val))
+            return new_val
+        else:
+            return val
+
     def _slider_handler(self, event):
         '''Passes the value from slider to input box and sets var when adjusted.'''
-        new_val = self.scale.get()
+        new_val = self._quantize_value(self.scale.get())
         print("Updating input_box value due to slider adjustment, new val: ", new_val)
         self.input_box.delete(0, END)
         self.input_box.insert(0, new_val)
