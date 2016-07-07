@@ -59,8 +59,8 @@ class PWViewer(PWWidget):
 
     def create_list(self, *args, **kwargs):
         self.pw_list = PWListBox(*args, **kwargs)
-        self.pw_list.bind('<ButtonRelease-1>', self._update_ring_selection_with_list_click)
-        self.pw_list.bind("<Key-Escape>", self._pw_interface_clear_selection)
+        self.pw_list.list.bind('<ButtonRelease-1>', self._update_ring_selection_with_list_click)
+        self.pw_list.list.bind("<Key-Escape>", self._pw_interface_clear_selection)
 
     def _click_pw_canvas(self, event):
         self._update_selected_ring_with_canvas_click(event)
@@ -161,7 +161,7 @@ class PWViewer(PWWidget):
             if ring.selected:
                 self.pw_list.selection_add(int(ring.id))
 
-    def _update_ring_selection_with_list_click():
+    def _update_ring_selection_with_list_click(self, event):
         '''Formerly _update_ring_selection.  Bound to click events on
         pw_list_box. Unlike the canvas click handler, we don't need to track
         the selected item within the widget or explicitly highlight it, so we
@@ -192,9 +192,19 @@ class PWViewer(PWWidget):
             ring.selected = False
         for iid in list_selection_array:
             selected_ring = self.pwapp.working_struct.ring_array[iid]
-            self.pw_interface_selected_rings.append(selected_ring)
+            self.pwapp.pw_interface_selected_rings.append(selected_ring)
             selected_ring.selected = True
-        self._pw_input_reset()
+        # self._pw_input_reset()
+        self.pwapp.pw_controller.clear_inputs()
+        if len(self.pwapp.pw_interface_selected_rings) == 1:
+            print("Exactly one ring selected; setting input sliders to its values.")
+            (rad, count, offset) = self.pwapp.pw_interface_selected_rings[0].radius, \
+            self.pwapp.pw_interface_selected_rings[0].count, \
+            self.pwapp.pw_interface_selected_rings[0].offsetDegrees
+            self.pwapp.pw_controller.set_inputs(rad, count, offset)
+        elif len(self.pwapp.pw_interface_selected_rings) > 1:
+            print("Disabling inputs as multiple rings are selected")
+            self.pwapp.pw_controller.disable_inputs()
         self._rebuild_pw_canvas()
 
     def _pw_interface_clear_selection(self, event=None):
@@ -359,6 +369,9 @@ class PWListBox(PWWidget, tkinter.Frame):
         self.list.column(heading, width=width, anchor=anchor)
         self.list.heading(heading, text=text)
 
+    def selection(self):
+        return self.list.selection()
+
     def selection_add(self, id):
         self.list.selection_add(id)
 
@@ -490,9 +503,13 @@ class PWSlider(tkinter.Frame, PWWidget):
             self.set_value(0)
 
     def set_value(self, val):
+        '''Set child widgets to specified value. callback will not be triggered
+        when using this method.'''
+        self.scale.config(command='')
         self.input_box.delete(0, END)
         self.input_box.insert(0, val)
         self.scale.set(val)
+        self.scale.config(command=self._slider_handler)
 
     def get_value(self):
         '''TODO In principle this is maybe not the most robust approach.'''
