@@ -390,6 +390,7 @@ class PWController(PWWidget):
         # and wait for the 'Submit' button to do anything with them.
         self.pw_slider_radius = PWSlider(setter_callback=self.update_active_ring_radius, quantize=2, from_=200.0, to=1.0)
         self.pw_slider_radius.input_box.bind("<Return>", self.submit_new_ring)
+        self.pw_slider_radius.input_box.config(width=6) # need a bit more space
         self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, quantize=0, from_=50.0, to=1.0)
         self.pw_slider_count.input_box.bind("<Return>", self.submit_new_ring)
         self.pw_slider_offset = PWSlider(setter_callback=self.update_active_ring_offset, quantize=1, from_=360.0, to=0.0)
@@ -490,7 +491,7 @@ class PWSlider(tkinter.Frame, PWWidget):
         self.scale = ttk.Scale(self, orient=orient, length=self.length, command=self._slider_handler, takefocus=False, **kwargs)
         self.scale.grid(row=0, column=0, pady=4)
         # Input box
-        self.input_box = tkinter.Entry(self, width=3)
+        self.input_box = ttk.Entry(self, width=3, justify=tkinter.RIGHT)
         self.input_box.grid(row=1, column=0, sticky=N)
         self.input_box.bind("<FocusOut>", self._input_box_handler)
         self.grid(row=row, column=column, pady=4)
@@ -516,11 +517,23 @@ class PWSlider(tkinter.Frame, PWWidget):
         return self.input_box.get()
 
     def _quantize_value(self, val):
-        if self.quantize is not None:
+        if self.quantize >= 0:
             print("Quantizing value to nearest " + str(self.quantize))
             new_val = round(val, self.quantize)
             if new_val % 1 == 0:
                 new_val = int(new_val)
+            try:
+                nvint, nvdec = str(new_val).split(".")
+            except ValueError:
+                # probably split returned nothing for second compomnent,
+                # so it's an integer.
+                nvint, nvdec = (str(new_val), "") 
+            if len(nvdec) < self.quantize:
+                # pad with zeros for round numbers to prevent jumpy text
+                new_val = nvint + "." + nvdec + ("0" * (self.quantize - len(nvdec)))
+            elif self.quantize == 0:
+                # the round() operation returns 'x.0' when rounding off all decimals
+                new_val = nvint
             print("Raw value: " + str(val) + "; quantized value: " + str(new_val))
             return new_val
         else:

@@ -1,3 +1,6 @@
+import tkinter
+# TODO will be deprecating the toplevel import below in favor of above
+# to clean up our namespace
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview, Style
@@ -103,6 +106,9 @@ class PanawaveApp:
         self.pw_controller.pw_slider_count.grid(row=1, column=2)
         self.pw_controller.pw_slider_offset.grid(row=1, column=3)
         self.pw_controller.pw_input_submit.grid(row=2, column=1, columnspan=3)
+
+        # Bind controller's button to spawn period dialog
+        self.pw_controller.pw_slider_count.details_button.config(command=self.spawn_period_dialog)
 
         self.pw_anim_control = PWAnimController(row=3, column=1, columnspan=3)
         # # animation control buttons, row 1 (on/off)
@@ -211,6 +217,33 @@ class PanawaveApp:
         else:
             self.pw_controller.clear_inputs()
             self.pw_controller.disable()
+
+    def spawn_period_dialog(self):
+        '''Creates a PWPeriodDialog window and waits for it to return.'''
+        print("Spawning a PWPeriodDialog and waiting for its return...")
+        self.period_dialog = PWPeriodDialog(self.master)
+        self.wait_window(period_dialog.win)
+
+
+class PWPeriodDialog:
+    '''see PWApp.spawn_period_dialog for handling of the event loop when dialog is created.'''
+    def __init__(self, master):
+        self.win = tkinter.Toplevel(master)
+        period_controller = PWPeriodController(master=self.win) #override the master inherited from PWWidget because we're casting it in a new window.
+        period_controller.grid(row=0, column=0)
+        cancel_button = PWButton(master=win, text="Cancel", command=self.cancel)
+        submit_button = PWButton(master=win, text="Set", command=self.submit)
+        cancel_button.grid(row=1, column=0)
+        submit_button.grid(row=1, column=1)
+
+    def cancel(self):
+        '''Close the dialog, discarding changes.'''
+        self.win.destroy()
+
+    def submit(self):
+        '''Close the dialog, saving changes.'''
+        # TODO do stuff here....
+        self.win.destroy()
 
 
 # ===========================================================================
