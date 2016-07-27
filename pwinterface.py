@@ -164,7 +164,7 @@ class PanawaveApp:
         if file is not None:
             self.working_struct.load_from_file(file)
         self.working_struct.draw()
-        self.update_list_box()
+        self.rebuild_views()
         return self.working_struct
 
     def _update_clicked_canvas_item(self, event):
@@ -191,21 +191,16 @@ class PanawaveApp:
             print("No CURRENT tag returned, must not have clicked an object.")
 
 
-    def update_list_box(self):
-        '''Rebuild the pw_list_box from the current contents of working_struct.
-        ring_array . IID's are explicitly set to coincide with the StickerRing.id       to simplify lookups for click events.'''
-        for item in self.viewer.pw_list.get_children():
-            self.viewer.pw_list.delete(item)
-        for i, key in enumerate(self.working_struct.ring_array, start=1):
-            ring = self.working_struct.ring_array[key]
-            self.viewer.pw_list.insert(parent="", index=i, iid=int(ring.id), text=i,
-                    values=ring.as_tuple())
+    def rebuild_views(self):
+        '''Rebuild the pw_list_box from the current contents of working_struct.  ring_array .'''
+        self.viewer.rebuild()
 
     def clear_selection(self):
         '''Clear selection state of working_struct as well as PWViewer and PWController'''
         self.working_struct.clear_selection()
         self.pw_controller.clear_inputs()
-        self.viewer.redraw()
+        self.viewer.rebuild() # really entirely unneccesary to rebuild the list
+            # here as well but...does it matter?
 
     def set_selection(ringlist):
         '''Set selection state of working_struct and update interface elements accordingly.'''

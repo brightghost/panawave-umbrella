@@ -50,6 +50,10 @@ class PWViewer(PWWidget):
     PWListBox can be laid out independently.'''
 
     def __init__(self):
+        # TODO/DOH! Can't grab the working_struct from pwapp because it doesn't
+        # have one yet when this is initted.... the order of intialization should
+        # flipped to fix this but for now just gonna do it the lazy way.
+        # self.working_struct = self.pwapp.working_struct
         pass
 
     def create_canvas(self, *args, **kwargs):
@@ -61,6 +65,42 @@ class PWViewer(PWWidget):
         self.pw_list = PWListBox(*args, **kwargs)
         self.pw_list.list.bind('<ButtonRelease-1>', self._update_ring_selection_with_list_click)
         self.pw_list.list.bind("<Key-Escape>", self._pw_interface_clear_selection)
+
+    def rebuild(self):
+        '''Rebuild all aspects of the views to reflect current conditions.'''
+        self._rebuild_pw_canvas()
+        self._rebuild_pw_list()
+
+    def _rebuild_pw_canvas(self):
+        '''Clear and then redraw the working_struct to the canvas.'''
+        print("REDRAWING CANVAS")
+        self.pw_canvas.delete("all")
+        self.pwapp.working_struct.draw(self.pw_canvas)
+
+    def _rebuild_pw_list(self):
+        '''Clear and then redraw the list. This lives here primarily so we don't need to bother with re-sorting the ring_array evertime a new draw call
+        is issued. IID's are explicitly set to coincide with the StickerRing.id
+        to simplify lookups for click events.'''
+        print("REBUILDING LIST")
+        self._clear_pw_list()
+        sorted_rings = sorted(self.pwapp.working_struct.ring_array.values(),
+            key=lambda ring: ring.radius)
+        print("Sorted rings in prep for redrawing listbox; new order:")
+        for r in sorted_rings:
+             print(r.radius)
+        # for i, key in enumerate(sorted_rings, start=1): 
+        for i, ring in enumerate(sorted_rings, start=1):
+            # ring = self.pwapp.working_struct.ring_array[key] 
+            self.pw_list.insert(parent="", index=i, iid=int(ring.id),
+                text=i, values=ring.as_tuple())
+            # update selected state also from .selected prop! 
+            if ring.selected:
+                self.pw_list.selection_add(int(ring.id))
+
+
+    def _clear_pw_list(self):
+        for item in self.pw_list.get_children():
+            self.pw_list.delete(item)
 
     def _click_pw_canvas(self, event):
         self._update_selected_ring_with_canvas_click(event)
@@ -139,27 +179,6 @@ class PWViewer(PWWidget):
             print("Double clicked empty canvas area; clearing selection.")
             self._pw_interface_clear_selection()
 
-    def _rebuild_pw_canvas(self):
-        '''Clear and then redraw the working_struct to the canvas.'''
-        print("REDRAWING CANVAS")
-        self.pw_canvas.delete("all")
-        self.pwapp.working_struct.draw(self.pw_canvas)
-
-    def _rebuild_list_box(self):
-        '''Formerly update_list_box.
-        Rebuild the pw_list_box from the current contents of working_struct.
-        ring_array . IID's are explicitly set to coincide with the StickerRing.id       to simplify lookups for click events.'''
-        for item in self.pw_list.get_children():
-            self.pw_list.delete(item)
-        sorted_rings = sorted(self.pwapp.working_struct.ring_array.values(), key= lambda ring: ring.radius)
-        # for i, key in enumerate(sorted_rings, start=1):
-        for i, ring in enumerate(sorted_rings, start=1):
-            # ring = self.pwapp.working_struct.ring_array[key]
-            self.pw_list.insert(parent="", index=i, iid=int(ring.id), text=i,
-                    values=ring.as_tuple())
-            # update selected state also from .selected prop!
-            if ring.selected:
-                self.pw_list.selection_add(int(ring.id))
 
     def _update_ring_selection_with_list_click(self, event):
         '''Formerly _update_ring_selection.  Bound to click events on
@@ -250,7 +269,6 @@ class PWViewer(PWWidget):
 
     # !!!!!!!!!!!!!!!!!! TODO TODO TODO !!!!!!!!!!!!!!!!!!!
     # Are the following three methods being used? Think they need to migrate
-
     # to PanawaveStruct
     # Moved to PWController because this is only called by the widgets therein.
     # def update_active_ring_radius(self, rad):
@@ -405,7 +423,7 @@ class PWController(PWWidget):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
             print("updating ring radius with value: ", rad)
             self.pwapp.pw_interface_selected_rings[0].set_radius(rad)
-            self.pwapp.viewer._rebuild_pw_canvas()
+            self.pwapp.rebuild_views()
         else:
             print("Not updating ring properties because not exactly one ring selected.")
 
@@ -414,7 +432,7 @@ class PWController(PWWidget):
             print("updating ring count with value: ", count)
             self.pwapp.pw_interface_selected_rings[0].set_count(int(count))
             self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
-            self.pwapp.viewer._rebuild_pw_canvas()
+            self.pwapp.rebuild_views()
         else:
             print("Not updating ring properties because not exactly one ring selected.")
 
@@ -423,7 +441,7 @@ class PWController(PWWidget):
             print("updating ring offset with value: ", deg)
             self.pwapp.pw_interface_selected_rings[0].set_offset(deg)
             self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
-            self.pwapp.viewer._rebuild_pw_canvas()
+            self.pwapp.rebuild_views()
         else:
             print("Not updating ring properties because not exactly one ring selected.")
 
@@ -445,7 +463,7 @@ class PWController(PWWidget):
         self.pwapp.working_struct.draw(self.pwapp.viewer.pw_canvas)
         # reset focus for a new ring entry
         self.pw_slider_radius.input_box.focus_set()
-        self.pwapp.update_list_box()
+        self.pwapp.rebuild_views()
 
     def set_inputs(self, radius, count, offset):
         '''Update input widgets to reflect selected values. Controls should be explicitly enabled with enable_inputs() if appropriate'''
@@ -574,6 +592,41 @@ class PWDetailedSlider(PWSlider):
         # reference details_button.winfo_height(), but apparently this value is
         # not calculated until the window is drawn and returns 1 if used here.
         self.scale.config(length=(self.length - 30))
+
+
+class PWPeriodController(PWWidget, tkinter.Frame):
+    '''Combined widget which allows selecting either equidistant sticker spacing or a custom periodic sequence for the selected ring.'''
+    def __init__(self, master=None, *args, **kwargs):
+        if master:
+            self.master = self.master
+        else:
+            self.master = self.pwapp.master
+        tkinter.Frame.__init__(self, self.master, *args, **kwargs)
+        mode_var = tk.IntVar()
+        mode_var.set(0) # 0 is 'simple' i.e. equidistant; 1 is 'complex'
+        self.pw_rb_simple = ttk.Radiobutton(master=self.pwapp.master, text="Equidistant", variable=mode_var, value=0, command=self.pw_rb_simple_selected)
+        self.pw_rb_complex = ttk.Radiobutton(master=self.pwapp.master, text="Complex", variable=mode_var, value=1, command=self.pw_rb_copmlex_selected)
+        self.pw_pattern_input = tkinter.Entry(master=self.pwapp.master)
+        # Layout
+        self.pw_rb_simple.grid(row=0, column=0)
+        self.pw_rb_complex.grid(row=1, column=0)
+        self.pw_pattern_input.grid(row=2, column=0)
+
+    def pw_rb_simple_selected(self):
+        '''Changing the selected mode only affects the interface state; changes
+        are not commited to the selected_ring until confirmed.'''
+        print("Disabling input box because simple mode was selected.")
+        self.pw_pattern_input.config(state=tk.DISABLED)
+
+    def pw_rb_complex_selected(self):
+        '''Enable input box when complex mode is selected.'''
+        print("Enabling input box because complex mode was selected.")
+        self.pw_pattern_input.config(state=tk.NORMAL)
+
+    def commit_changes(self):
+        '''Apply the inputted settings to the selected ring(s)'''
+        pass
+
 
 
 class PWSubmitButton(PWWidget, ttk.Button):
