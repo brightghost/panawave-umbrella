@@ -233,6 +233,7 @@ class PanawaveStruct:
                 # TODO probbably not particularly useful to pass input that 
                 # fails an eval straight into our list? or did I do this to
                 # handle strings or something?
+                print("FAILED to eval input!! given data: " + str(arg))
                 evaluated_args.append(arg)
         self.canvas.delete("all")
 
@@ -243,7 +244,7 @@ class PanawaveStruct:
 
     def clear_selection(self):
         '''un-select all rings. You need to handle redrawing after.'''
-        for ring in self.ring_array:
+        for ring in self.ring_array.values():
             ring.selected = False
 
 
