@@ -3,4 +3,4 @@ The Panawave Umbrella Generator is a (currently) tkinter-based gui tool for gene
 
 Screenshot of a rather rough development version below:
 
-![App Screenshot](doc/images/Screenshot-20160216.png)
+![App Screenshot](doc/images/Screenshot_2016-07-08_09-58-36.png)
