@@ -396,7 +396,7 @@ class PWController(PWWidget):
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
 
         # new ring submit button
-        self.pw_input_submit = PWSubmitButton(text="Create")
+        self.pw_input_submit = PWButton(text="Create")
         self.pw_input_submit.config(command=self.submit_new_ring)
 
 
@@ -563,8 +563,48 @@ class PWDetailedSlider(PWSlider):
         self.scale.config(length=(self.length - 30))
 
 
+<<<<<<< Updated upstream
 class PWSubmitButton(PWWidget, ttk.Button):
     '''New ring submit button.'''
+=======
+class PWPeriodController(PWWidget, tkinter.Frame):
+    '''Combined widget which allows selecting either equidistant sticker spacing or a custom periodic sequence for the selected ring.'''
+    def __init__(self, master=None, *args, **kwargs):
+        if master:
+            self.master = master
+        else:
+            self.master = self.pwapp.master
+        tkinter.Frame.__init__(self, self.master, *args, **kwargs)
+        mode_var = tkinter.IntVar()
+        mode_var.set(0) # 0 is 'simple' i.e. equidistant; 1 is 'complex'
+        self.pw_rb_simple = ttk.Radiobutton(master=self, text="Equidistant", variable=mode_var, value=0, command=self.pw_rb_simple_selected)
+        self.pw_rb_complex = ttk.Radiobutton(master=self, text="Complex", variable=mode_var, value=1, command=self.pw_rb_complex_selected)
+        self.pw_pattern_input = tkinter.Entry(master=self)
+        # Layout
+        self.pw_rb_simple.grid(row=0, column=0)
+        self.pw_rb_complex.grid(row=1, column=0)
+        self.pw_pattern_input.grid(row=2, column=0)
+
+    def pw_rb_simple_selected(self):
+        '''Changing the selected mode only affects the interface state; changes
+        are not commited to the selected_ring until confirmed.'''
+        print("Disabling input box because simple mode was selected.")
+        self.pw_pattern_input.config(state=tkinter.DISABLED)
+
+    def pw_rb_complex_selected(self):
+        '''Enable input box when complex mode is selected.'''
+        print("Enabling input box because complex mode was selected.")
+        self.pw_pattern_input.config(state=tkinter.NORMAL)
+
+    def commit_changes(self):
+        '''Apply the inputted settings to the selected ring(s)'''
+        pass
+
+
+
+class PWButton(PWWidget, ttk.Button):
+    '''A button.'''
+>>>>>>> Stashed changes
 
 
 class PWAnimController(PWWidget, tkinter.Frame):
