@@ -563,10 +563,6 @@ class PWDetailedSlider(PWSlider):
         self.scale.config(length=(self.length - 30))
 
 
-<<<<<<< Updated upstream
-class PWSubmitButton(PWWidget, ttk.Button):
-    '''New ring submit button.'''
-=======
 class PWPeriodController(PWWidget, tkinter.Frame):
     '''Combined widget which allows selecting either equidistant sticker spacing or a custom periodic sequence for the selected ring.'''
     def __init__(self, master=None, *args, **kwargs):
@@ -604,7 +600,6 @@ class PWPeriodController(PWWidget, tkinter.Frame):
 
 class PWButton(PWWidget, ttk.Button):
     '''A button.'''
->>>>>>> Stashed changes
 
 
 class PWAnimController(PWWidget, tkinter.Frame):
@@ -670,9 +665,10 @@ class PWAnimController(PWWidget, tkinter.Frame):
 #        try:
 #            eval(statement)
 #        except:
-#            e = sys.exc_info()
-#            print("***Console input generated the following error:***")
-#            print(e)
+#        self.pwapp.working_struct.draw(self.pw_canvas)
+#        self.update_list_box()
+#        sleep(.5)
+#        self.console_history_offset = 0
 #        self.pwapp.working_struct.draw(self.pw_canvas)
 #        self.update_list_box()
 #        sleep(.5)

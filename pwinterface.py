@@ -212,8 +212,6 @@ class PanawaveApp:
             self.pw_controller.clear_inputs()
             self.pw_controller.disable()
 
-<<<<<<< Updated upstream
-=======
     def spawn_period_dialog(self):
         '''Creates a PWPeriodDialog window and waits for it to return.'''
         print("Spawning a PWPeriodDialog and waiting for its return...")
@@ -241,8 +239,6 @@ class PWPeriodDialog:
         '''Close the dialog, saving changes.'''
         # TODO do stuff here....
         self.win.destroy()
-
->>>>>>> Stashed changes
 
 # ===========================================================================
 # Reference shite left over below.
