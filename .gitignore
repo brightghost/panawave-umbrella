@@ -3,3 +3,5 @@
 *.swp
 # python compiler files
 __pycache__
+
+TODO.txt
