@@ -105,6 +105,7 @@ class PanawaveApp:
         self.pw_controller.pw_input_submit.grid(row=2, column=1, columnspan=3)
 
         self.pw_anim_control = PWAnimController(row=3, column=1, columnspan=3)
+
         # # animation control buttons, row 1 (on/off)
         # # set width manually so layout doesn't jump around when we
         # # change the text

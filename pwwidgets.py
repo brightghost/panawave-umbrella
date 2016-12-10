@@ -390,7 +390,7 @@ class PWController(PWWidget):
         # and wait for the 'Submit' button to do anything with them.
         self.pw_slider_radius = PWSlider(setter_callback=self.update_active_ring_radius, quantize=2, from_=200.0, to=1.0)
         self.pw_slider_radius.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, quantize=0, from_=50.0, to=1.0)
+        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, details_button_callback=self.spawn_period_dialog, quantize=0, from_=50.0, to=1.0)
         self.pw_slider_count.input_box.bind("<Return>", self.submit_new_ring)
         self.pw_slider_offset = PWSlider(setter_callback=self.update_active_ring_offset, quantize=1, from_=360.0, to=0.0)
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
@@ -398,7 +398,6 @@ class PWController(PWWidget):
         # new ring submit button
         self.pw_input_submit = PWButton(text="Create")
         self.pw_input_submit.config(command=self.submit_new_ring)
-
 
     def update_active_ring_radius(self, rad):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
@@ -471,6 +470,9 @@ class PWController(PWWidget):
         for slider in sliders:
             slider.scale.state(["!disabled"]) # ...and even stupider!
             slider.input_box.configure(state=NORMAL)
+
+    def spawn_period_dialog(self):
+        self.pwapp.spawn_period_dialog()
 
 
 class PWSlider(tkinter.Frame, PWWidget):
@@ -548,8 +550,9 @@ class PWDetailedSlider(PWSlider):
     '''Slider with addition of a context button for accessing additional config.
     Used for the 'count' controller.'''
     def __init__(self, *args, **kwargs):
+        self.details_button_callback = kwargs.pop("details_button_callback")
         PWSlider.__init__(self, *args, **kwargs)
-        self.details_button = ttk.Button(self, text="...", width=2)
+        self.details_button = ttk.Button(self, text="...", width=2, command=self.details_button_callback)
         self.details_button.configure(takefocus=0)# skip when tabbing thru fields
         self.details_button.grid(row=0, column=0)
         self.scale.grid(row=1, column=0, pady=4)
@@ -561,6 +564,10 @@ class PWDetailedSlider(PWSlider):
         # reference details_button.winfo_height(), but apparently this value is
         # not calculated until the window is drawn and returns 1 if used here.
         self.scale.config(length=(self.length - 30))
+
+
+
+
 
 
 class PWPeriodController(PWWidget, tkinter.Frame):
