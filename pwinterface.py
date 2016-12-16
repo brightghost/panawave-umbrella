@@ -225,12 +225,14 @@ class PWPeriodDialog(tkinter.Toplevel):
     def __init__(self, master):
         tkinter.Toplevel.__init__(self, master)
         self.resizable(width=FALSE, height=FALSE)
-        period_controller = PWPeriodController(master=self) #override the master inherited from PWWidget because we're casting it in a new window.
-        period_controller.pack(padx=12, pady=12, fill='x')
-        cancel_button = PWButton(master=self, text="Cancel", command=self.cancel)
-        submit_button = PWButton(master=self, text="Set", command=self.submit)
-        submit_button.pack(side=tkinter.RIGHT, padx=12, pady=12)
-        cancel_button.pack(side=tkinter.RIGHT, padx=12, pady=12)
+        self.period_controller = PWPeriodController(master=self) #override the master inherited from PWWidget because we're casting it in a new window.
+        self.btn_box = tkinter.Frame(self)
+        self.period_controller.pack(padx=12, pady=12, fill='x')
+        self.btn_box.pack(padx=12, pady=12, fill='x')
+        cancel_button = PWButton(master=self.btn_box, text="Cancel", command=self.cancel)
+        submit_button = PWButton(master=self.btn_box, text="Set", command=self.submit)
+        submit_button.pack(side=tkinter.RIGHT)
+        cancel_button.pack(side=tkinter.RIGHT, padx=6)
 
         self.bind("<Return>", self.submit)
         self.bind("<Escape>", self.cancel)
@@ -238,8 +240,11 @@ class PWPeriodDialog(tkinter.Toplevel):
         # grab all input events from other windows
         self.grab_set()
 
+        self.wm_title("Set Sticker Spacing...")
+
         # handle closing window from window manager
         self.protocol("WM_DELETE_WINDOW", self.cancel)
+
 
     def cancel(self):
         '''Close the dialog, discarding changes.'''

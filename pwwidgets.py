@@ -580,25 +580,38 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         tkinter.Frame.__init__(self, self.master, *args, **kwargs)
         mode_var = tkinter.IntVar()
         mode_var.set(0) # 0 == 'simple' i.e. equidistant; 1 == 'complex'
-        # self.content_bx = tkinter.Frame(self, self.master)
-        self.pw_rb_simple = ttk.Radiobutton(master=self, text="Equidistant", variable=mode_var, value=0, command=self.pw_rb_simple_selected)
-        self.pw_rb_complex = ttk.Radiobutton(master=self, text="Complex", variable=mode_var, value=1, command=self.pw_rb_complex_selected)
-        self.pw_pattern_input = tkinter.Entry(master=self)
+        self.f_smpl = tkinter.Frame(self, padx=18, pady=18)
+        self.f_cmpx = tkinter.Frame(self, padx=18, pady=18)
+        self.f_smpl.pack(fill='x')
+        self.f_cmpx.pack(fill='x')
+        self.pw_rb_simple = ttk.Radiobutton(master=self.f_smpl,
+            text="Equidistant", variable=mode_var, value=0,
+            command=self.pw_rb_simple_selected)
+        self.pw_rb_complex = ttk.Radiobutton(master=self.f_cmpx, text="Complex",
+            variable=mode_var, value=1, command=self.pw_rb_complex_selected)
+        self.pw_pattern_input = tkinter.Entry(master=self.f_cmpx)
+        self.pw_pattern_input_label = tkinter.Label(master=self.f_cmpx,
+            text="""Enter a comma-delimited list of ratios, for example '1,2,2,1'. The sticker count will refer to multiples of your pattern.""",
+            state=tkinter.DISABLED, justify=tkinter.LEFT, wraplength=260)
+
         # Layout
-        self.pw_rb_simple.pack(anchor='w')
-        self.pw_rb_complex.pack(anchor='w')
-        self.pw_pattern_input.pack(anchor='w')
+        self.pw_rb_simple.pack(anchor='w', pady=4)
+        self.pw_rb_complex.pack(anchor='w', pady=4)
+        self.pw_pattern_input.pack(anchor='w', fill='x', pady=4)
+        self.pw_pattern_input_label.pack(anchor='w', pady=4)
 
     def pw_rb_simple_selected(self):
         '''Changing the selected mode only affects the interface state; changes
         are not commited to the selected_ring until confirmed.'''
         print("Disabling input box because simple mode was selected.")
         self.pw_pattern_input.config(state=tkinter.DISABLED)
+        self.pw_pattern_input_label.config(state=tkinter.DISABLED)
 
     def pw_rb_complex_selected(self):
         '''Enable input box when complex mode is selected.'''
         print("Enabling input box because complex mode was selected.")
         self.pw_pattern_input.config(state=tkinter.NORMAL)
+        self.pw_pattern_input_label.config(state=tkinter.NORMAL)
 
     def commit_changes(self):
         '''Apply the inputted settings to the selected ring(s)'''
