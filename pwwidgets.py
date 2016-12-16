@@ -579,14 +579,15 @@ class PWPeriodController(PWWidget, tkinter.Frame):
             self.master = self.pwapp.master
         tkinter.Frame.__init__(self, self.master, *args, **kwargs)
         mode_var = tkinter.IntVar()
-        mode_var.set(0) # 0 is 'simple' i.e. equidistant; 1 is 'complex'
+        mode_var.set(0) # 0 == 'simple' i.e. equidistant; 1 == 'complex'
+        # self.content_bx = tkinter.Frame(self, self.master)
         self.pw_rb_simple = ttk.Radiobutton(master=self, text="Equidistant", variable=mode_var, value=0, command=self.pw_rb_simple_selected)
         self.pw_rb_complex = ttk.Radiobutton(master=self, text="Complex", variable=mode_var, value=1, command=self.pw_rb_complex_selected)
         self.pw_pattern_input = tkinter.Entry(master=self)
         # Layout
-        self.pw_rb_simple.grid(row=0, column=0)
-        self.pw_rb_complex.grid(row=1, column=0)
-        self.pw_pattern_input.grid(row=2, column=0)
+        self.pw_rb_simple.pack(anchor='w')
+        self.pw_rb_complex.pack(anchor='w')
+        self.pw_pattern_input.pack(anchor='w')
 
     def pw_rb_simple_selected(self):
         '''Changing the selected mode only affects the interface state; changes

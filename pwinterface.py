@@ -217,18 +217,18 @@ class PanawaveApp:
         '''Creates a PWPeriodDialog window and waits for it to return.'''
         print("Spawning a PWPeriodDialog and waiting for its return...")
         self.period_dialog = PWPeriodDialog(self.master)
-        self.master.wait_window(self.period_dialog.win)
+        self.master.wait_window(self.period_dialog)
 
 
-class PWPeriodDialog:
+class PWPeriodDialog(tkinter.Toplevel):
     '''see PWApp.spawn_period_dialog for handling of the event loop when dialog is created.'''
     def __init__(self, master):
-        self.win = tkinter.Toplevel(master)
-        self.win.resizable(width=FALSE, height=FALSE)
-        period_controller = PWPeriodController(master=self.win) #override the master inherited from PWWidget because we're casting it in a new window.
+        tkinter.Toplevel.__init__(self, master)
+        self.resizable(width=FALSE, height=FALSE)
+        period_controller = PWPeriodController(master=self) #override the master inherited from PWWidget because we're casting it in a new window.
         period_controller.pack(padx=12, pady=12, fill='x')
-        cancel_button = PWButton(master=self.win, text="Cancel", command=self.cancel)
-        submit_button = PWButton(master=self.win, text="Set", command=self.submit)
+        cancel_button = PWButton(master=self, text="Cancel", command=self.cancel)
+        submit_button = PWButton(master=self, text="Set", command=self.submit)
         submit_button.pack(side=tkinter.RIGHT, padx=12, pady=12)
         cancel_button.pack(side=tkinter.RIGHT, padx=12, pady=12)
 
@@ -243,12 +243,12 @@ class PWPeriodDialog:
 
     def cancel(self):
         '''Close the dialog, discarding changes.'''
-        self.win.destroy()
+        self.destroy()
 
     def submit(self):
         '''Close the dialog, saving changes.'''
         # TODO do stuff here....
-        self.win.destroy()
+        self.destroy()
 
 # ===========================================================================
 # Reference shite left over below.
