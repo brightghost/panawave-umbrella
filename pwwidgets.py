@@ -580,8 +580,8 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         tkinter.Frame.__init__(self, self.master, *args, **kwargs)
         mode_var = tkinter.IntVar()
         mode_var.set(0) # 0 == 'simple' i.e. equidistant; 1 == 'complex'
-        self.f_smpl = tkinter.Frame(self, padx=18, pady=18)
-        self.f_cmpx = tkinter.Frame(self, padx=18, pady=18)
+        self.f_smpl = tkinter.Frame(self, padx=18, pady=12)
+        self.f_cmpx = tkinter.Frame(self, padx=18, pady=12)
         self.f_smpl.pack(fill='x')
         self.f_cmpx.pack(fill='x')
         self.pw_rb_simple = ttk.Radiobutton(master=self.f_smpl,

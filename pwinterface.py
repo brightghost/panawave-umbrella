@@ -224,33 +224,49 @@ class PWPeriodDialog(tkinter.Toplevel):
     '''see PWApp.spawn_period_dialog for handling of the event loop when dialog is created.'''
     def __init__(self, master):
         tkinter.Toplevel.__init__(self, master)
-        self.resizable(width=FALSE, height=FALSE)
         self.period_controller = PWPeriodController(master=self) #override the master inherited from PWWidget because we're casting it in a new window.
         self.btn_box = tkinter.Frame(self)
-        self.period_controller.pack(padx=12, pady=12, fill='x')
+        self.period_controller.pack(padx=12, pady=0, fill='x')
         self.btn_box.pack(padx=12, pady=12, fill='x')
         cancel_button = PWButton(master=self.btn_box, text="Cancel", command=self.cancel)
-        submit_button = PWButton(master=self.btn_box, text="Set", command=self.submit)
+        submit_button = PWButton(master=self.btn_box, text="Set", command=self.submit, default='active')
         submit_button.pack(side=tkinter.RIGHT)
         cancel_button.pack(side=tkinter.RIGHT, padx=6)
 
         self.bind("<Return>", self.submit)
         self.bind("<Escape>", self.cancel)
 
+
+        # window management
+
+        self.resizable(width=FALSE, height=FALSE)
         # grab all input events from other windows
         self.grab_set()
 
         self.wm_title("Set Sticker Spacing...")
 
+        # bunch of bullshit to visually center the dialog over parent...
+        # Force the geometry manager to arrange the widgets so we can
+        # calculate placement based on size
+        self.update()
+        self.parent_center_x = self.master.winfo_rootx() + (self.master.winfo_width() / 2)
+        self.parent_center_y = self.master.winfo_rooty() + (self.master.winfo_height() / 2)
+        self.offset_x = self.parent_center_x - (self.winfo_width() / 2)
+        # y a bit above center because it looks better
+        self.offset_y = self.parent_center_y - (self.winfo_height() /2) - 100
+
+        self.geometry("+%d+%d" % (self.offset_x,
+            self.offset_y))
+
         # handle closing window from window manager
         self.protocol("WM_DELETE_WINDOW", self.cancel)
 
 
-    def cancel(self):
+    def cancel(self, *args):
         '''Close the dialog, discarding changes.'''
         self.destroy()
 
-    def submit(self):
+    def submit(self, *args):
         '''Close the dialog, saving changes.'''
         # TODO do stuff here....
         self.destroy()
