@@ -226,11 +226,20 @@ class PWPeriodDialog:
         self.win = tkinter.Toplevel(master)
         self.win.resizable(width=FALSE, height=FALSE)
         period_controller = PWPeriodController(master=self.win) #override the master inherited from PWWidget because we're casting it in a new window.
-        period_controller.grid(row=0, column=0)
+        period_controller.pack(padx=12, pady=12, fill='x')
         cancel_button = PWButton(master=self.win, text="Cancel", command=self.cancel)
         submit_button = PWButton(master=self.win, text="Set", command=self.submit)
-        cancel_button.grid(row=1, column=0)
-        submit_button.grid(row=1, column=1)
+        submit_button.pack(side=tkinter.RIGHT, padx=12, pady=12)
+        cancel_button.pack(side=tkinter.RIGHT, padx=12, pady=12)
+
+        self.bind("<Return>", self.submit)
+        self.bind("<Escape>", self.cancel)
+
+        # grab all input events from other windows
+        self.grab_set()
+
+        # handle closing window from window manager
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
 
     def cancel(self):
         '''Close the dialog, discarding changes.'''
