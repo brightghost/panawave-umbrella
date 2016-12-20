@@ -76,12 +76,12 @@ class PWViewer(PWWidget):
          3. Redraw the canvas,
          4. Rebuild the pw_list_box from the RingArray.import
          5. Reset the input sliders (if applicable).'''
-        # Check if we actually clicked something
+        #TODO: There's no reason to replicate the selection state to the working_struct and it's going to get us in trouble. pwapp.pw_interface_selected_rings should be the canonical and only record of this.
         if self.pw_canvas.find_withtag(CURRENT):
             clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
             print("Clicked on object with id ", clicked_obj_id)
             try:
-                # check if it's tagges as part of a ring...
+                # check if it's tagged as part of a ring...
                 clicked_ring_tag = next(
                         tag for tag in self.pw_canvas.gettags(
                             clicked_obj_id) if "ring-" in tag)
@@ -411,7 +411,7 @@ class PWController(PWWidget):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
             print("updating ring count with value: ", count)
             self.pwapp.pw_interface_selected_rings[0].set_count(int(count))
-            self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
+            # self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
             self.pwapp.viewer._rebuild_pw_canvas()
         else:
             print("Not updating ring properties because not exactly one ring selected.")
@@ -420,7 +420,7 @@ class PWController(PWWidget):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
             print("updating ring offset with value: ", deg)
             self.pwapp.pw_interface_selected_rings[0].set_offset(deg)
-            self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
+            # self.pwapp.pw_interface_selected_rings[0].draw(self.pwapp.viewer.pw_canvas)
             self.pwapp.viewer._rebuild_pw_canvas()
         else:
             print("Not updating ring properties because not exactly one ring selected.")
@@ -580,6 +580,9 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         tkinter.Frame.__init__(self, self.master, *args, **kwargs)
         mode_var = tkinter.IntVar()
         mode_var.set(0) # 0 == 'simple' i.e. equidistant; 1 == 'complex'
+        # http://stackoverflow.com/a/6549535
+        self.period_var = tkinter.StringVar()
+        self.period_var.trace("w", lambda name, index, mode, sv=self.period_var: self._entry_handler(self.period_var))
         self.f_smpl = tkinter.Frame(self, padx=18, pady=12)
         self.f_cmpx = tkinter.Frame(self, padx=18, pady=12)
         self.f_smpl.pack(fill='x')
@@ -589,7 +592,7 @@ class PWPeriodController(PWWidget, tkinter.Frame):
             command=self.pw_rb_simple_selected)
         self.pw_rb_complex = ttk.Radiobutton(master=self.f_cmpx, text="Complex",
             variable=mode_var, value=1, command=self.pw_rb_complex_selected)
-        self.pw_pattern_input = tkinter.Entry(master=self.f_cmpx)
+        self.pw_pattern_input = tkinter.Entry(master=self.f_cmpx, textvariable=self.period_var)
         self.pw_pattern_input_label = tkinter.Label(master=self.f_cmpx,
             text="""Enter a comma-delimited list of ratios, for example '1,2,2,1'. The sticker count will refer to multiples of your pattern.""",
             state=tkinter.DISABLED, justify=tkinter.LEFT, wraplength=260)
@@ -599,6 +602,18 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         self.pw_rb_complex.pack(anchor='w', pady=4)
         self.pw_pattern_input.pack(anchor='w', fill='x', pady=4)
         self.pw_pattern_input_label.pack(anchor='w', pady=4)
+
+    def _entry_handler(self, string_var):
+        '''Callback attached to updates of the 'Complex' text entry.'''
+        period_entry = string_var.get()
+        l = period_entry.split(",")
+        try:
+            for item in l:
+                int(item)
+        except TypeError:
+            return
+        self.update_active_ring_period(l)
+
 
     def pw_rb_simple_selected(self):
         '''Changing the selected mode only affects the interface state; changes
@@ -617,6 +632,11 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         '''Apply the inputted settings to the selected ring(s)'''
         pass
 
+    def update_active_ring_period(self, scaler_list):
+        for ring in self.pwapp.pw_interface_selected_rings:
+            print("updating scaler_list of ring ", repr(ring), " with value: ", repr(scaler_list))
+            self.pwapp.pw_interface_selected_rings[0].set_scaler_list(scaler_list)
+        self.pwapp.viewer._rebuild_pw_canvas()
 
 
 class PWButton(PWWidget, ttk.Button):

@@ -108,20 +108,21 @@ class StickerRing:
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
-    def __init__(self, radius, count, offsetDegrees=0, geometry=None, id=None):
+    def __init__(self, radius, count, offsetDegrees=0, scaler_list=[1], geometry=None, id=None):
         if id is None:
             self.id = randint(10000,99999)
         else:
             self.id = id
-        self.selected = False
+        self.selected = False #TODO kill this
         if geometry is not None:
             self.baseStickerPoly = geometry
-        self._initialize_geometry(radius, count, offsetDegrees)
-
-    def _initialize_geometry(self, radius, count, offsetDegrees):
         self.radius = float(radius)
         self.count = int(count)
         self.offsetDegrees = float(offsetDegrees)
+        self.scaler_list = scaler_list
+        self._initialize_geometry()
+
+    def _initialize_geometry_old(self):
         self.sticker_list = []
         self.period = 360 / self.count
         for i in range(1, self.count + 1):
@@ -133,17 +134,68 @@ class StickerRing:
             # position = position + 1
             self.sticker_list.append(s)
 
+    def _initialize_geometry(self):
+        self.increment = self._get_increment_val()
+        self.sticker_list = []
+        prev_offset = 0
+        for s in self._stepper(self.count, self.scaler_list):
+            p = PanawavePolygon(self.baseStickerPoly)
+            # center the centroid at canvas origin before other moves
+            p.translate((0 - p.centroid[0]), (0 - p.centroid[1]))
+            p.translate(0, self.radius)
+            curr_offset = prev_offset + self.increment * s
+            p.rotate_about_origin(
+                    self.offsetDegrees + \
+                    curr_offset)
+            self.sticker_list.append(p)
+            prev_offset = curr_offset
+
+    def _stepper(self, steps, scaler_list, step_val=None):
+        '''Generator for scalers, as determined from the scaler_list
+        (configured with PWPeriodController.)'''
+        i = 0
+        while i < steps:
+            yield scaler_list[i % len(scaler_list)]
+            i += 1
+
+    def _get_increment_val(self):
+        '''Calculate the base increment, from which the various step values will be derived.
+        NOTE: while the interface enforces a 'count == len(scaler_list) / x' relationship, no such restriction exists here, and self.count is the actual count of stickers. Rings which are not evenly divisible by the scaler list will are possible; they just will not have clean radial symmetry.'''
+        # That said....this *would* be easier if we only allowed divis. counts:
+        #   full_sc_list = self.scaler_list * count
+        #   incr = 360 / sum(full_sl_list)
+        if not self.scaler_list:
+            return 1 # we would arrive at this same result if we calculated anyway...
+        full_scaler_list = []
+        for s in range(self.count):
+            full_scaler_list.append(self.scaler_list[s % len(self.scaler_list)])
+        increment = 360 / sum(full_scaler_list)
+        print("Calculated new ring increment of " + str(increment) + " from scaler_list: " + repr(self.scaler_list))
+        return increment
+
+
     def set_radius(self, new_radius):
         '''Setter for radius; will re-initialize the object.'''
-        self._initialize_geometry(new_radius, self.count, self.offsetDegrees)
+        self.radius = float(new_radius)
+        self._initialize_geometry()
 
     def set_count(self, new_count):
         '''Setter for count; will re-initialize the object.'''
-        self._initialize_geometry(self.radius, new_count, self.offsetDegrees)
+        self.count = int(new_count)
+        self._initialize_geometry()
 
     def set_offset(self, new_offset):
         '''Setter for offset; will re-intialize the object.'''
-        self._initialize_geometry(self.radius, self.count, new_offset)
+        self.offsetDegrees = float(new_offset)
+        self._initialize_geometry()
+
+    def set_scaler_list(self, new_list):
+        '''Setter for scaler list; will re-initialize the object. An
+        empty set or [1] will both result in 'equidistant' spacing.'''
+        self.scaler_list = []
+        for item in new_list:
+            self.scaler_list.append(int(item))
+        self._initialize_geometry()
 
     def as_string(self):
         '''return string representing the StickerRing.'''
@@ -230,9 +282,8 @@ class PanawaveStruct:
             try:
                 evaluated_args.append(eval(arg))
             except TypeError:
-                # TODO probbably not particularly useful to pass input that 
-                # fails an eval straight into our list? or did I do this to
-                # handle strings or something?
+                # Some of the args may handle strings, lists etc.,
+                # so just let the StickerRing deal with them
                 evaluated_args.append(arg)
         self.canvas.delete("all")
 
