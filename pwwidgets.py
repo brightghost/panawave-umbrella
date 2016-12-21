@@ -616,7 +616,7 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         try:
             for item in l:
                 int(item)
-        except TypeError:
+        except (TypeError, ValueError):
             return
         self.update_active_ring_period(l)
 

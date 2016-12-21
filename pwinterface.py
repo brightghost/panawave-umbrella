@@ -6,6 +6,7 @@ from math import degrees, radians
 from cmath import exp
 from random import random
 from time import sleep
+from copy import deepcopy
 import json
 import os
 import sys
@@ -220,9 +221,18 @@ class PanawaveApp:
         self.master.wait_window(self.period_dialog)
 
 
-class PWPeriodDialog(tkinter.Toplevel):
-    '''see PWApp.spawn_period_dialog for handling of the event loop when dialog is created.'''
+class PWPeriodDialog(tkinter.Toplevel, PWWidget):
+    '''see PWApp.spawn_period_dialog for handling of the event loop when dialog is created. Inherits from PWWidget only so we can ref pwapp when saving state.'''
     def __init__(self, master):
+
+        # Stash pre-state for use by self.cancel
+        self.prior_scaler_states = []
+        for r in self.pwapp.pw_interface_selected_rings:
+            self.prior_scaler_states.append(deepcopy(r.scaler_list))
+        print("Stashed scaler_list states prior to spawning period dialog: ",
+                repr(self.prior_scaler_states))
+
+        # Interface
         tkinter.Toplevel.__init__(self, master)
         self.period_controller = PWPeriodController(master=self) #override the master inherited from PWWidget because we're casting it in a new window.
         self.btn_box = tkinter.Frame(self)
@@ -233,18 +243,17 @@ class PWPeriodDialog(tkinter.Toplevel):
         submit_button.pack(side=tkinter.RIGHT)
         cancel_button.pack(side=tkinter.RIGHT, padx=6)
 
+        # Bindings
         self.bind("<Return>", self.submit)
         self.bind("<Escape>", self.cancel)
 
 
         # window management
 
+        self.wm_title("Set Sticker Spacing...")
         self.resizable(width=FALSE, height=FALSE)
         # grab all input events from other windows
         self.grab_set()
-
-        self.wm_title("Set Sticker Spacing...")
-
         # bunch of bullshit to visually center the dialog over parent...
         # Force the geometry manager to arrange the widgets so we can
         # calculate placement based on size
@@ -264,11 +273,23 @@ class PWPeriodDialog(tkinter.Toplevel):
 
     def cancel(self, *args):
         '''Close the dialog, discarding changes.'''
+        # roll back to the saved state.
+        print("Rolling back changes: curr contents of prior_scaler_states: ",
+                repr(self.prior_scaler_states))
+        print("zipping prior_states to rings in preparation for rollback: ",
+                repr(list(zip(self.pwapp.pw_interface_selected_rings, self.prior_scaler_states))))
+        for ring, prior_state in zip(
+                self.pwapp.pw_interface_selected_rings,
+                self.prior_scaler_states):
+            print("Resetting scaler_list of ring ", repr(ring),
+                    " to prior value: ", repr(prior_state))
+            ring.set_scaler_list(prior_state)
+        self.pwapp.viewer._rebuild_pw_canvas()
         self.destroy()
 
     def submit(self, *args):
         '''Close the dialog, saving changes.'''
-        # TODO do stuff here....
+        # Changes are applied in realtime, so there is nothing to "submit"
         self.destroy()
 
 # ===========================================================================
