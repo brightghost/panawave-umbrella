@@ -122,18 +122,6 @@ class StickerRing:
         self.scaler_list = scaler_list
         self._initialize_geometry()
 
-    def _initialize_geometry_old(self):
-        self.sticker_list = []
-        self.period = 360 / self.count
-        for i in range(1, self.count + 1):
-            s = PanawavePolygon(self.baseStickerPoly)
-            # center the centroid at canvas origin before other moves
-            s.translate((0 - s.centroid[0]), (0 - s.centroid[1]))
-            s.translate(0, self.radius)
-            s.rotate_about_origin(self.offsetDegrees + self.period * i)
-            # position = position + 1
-            self.sticker_list.append(s)
-
     def _initialize_geometry(self):
         self.increment = self._get_increment_val()
         self.sticker_list = []
@@ -256,7 +244,10 @@ class PanawaveStruct:
         self.persistent_state = {
             # master scaler for animations. can also be modified by
             # passing as argument to any of the animation methods.
-            "master_orbit_speed": 1.5
+            "master_orbit_speed": 1.5,
+            # rings which have had .count uncoupled from multiples 
+            # of len(.scaler_list)
+            "unlocked_rings": []
             }
         # This dictionary is intended for variables that can be discarded when
         # saved to file.

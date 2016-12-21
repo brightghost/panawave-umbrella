@@ -272,12 +272,9 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
 
 
     def cancel(self, *args):
-        '''Close the dialog, discarding changes.'''
-        # roll back to the saved state.
-        print("Rolling back changes: curr contents of prior_scaler_states: ",
+        '''Close the dialog and roll back changes.'''
+        print("Rolling back to prior_scaler_states: ",
                 repr(self.prior_scaler_states))
-        print("zipping prior_states to rings in preparation for rollback: ",
-                repr(list(zip(self.pwapp.pw_interface_selected_rings, self.prior_scaler_states))))
         for ring, prior_state in zip(
                 self.pwapp.pw_interface_selected_rings,
                 self.prior_scaler_states):
@@ -289,7 +286,7 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
 
     def submit(self, *args):
         '''Close the dialog, saving changes.'''
-        # Changes are applied in realtime, so there is nothing to "submit"
+        # Changes are applied in real-time, so there is nothing to "submit"
         self.destroy()
 
 # ===========================================================================

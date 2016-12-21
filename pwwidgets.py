@@ -76,7 +76,8 @@ class PWViewer(PWWidget):
          2. Rebuild the interface's internal list of selected items,
          3. Redraw the canvas,
          4. Rebuild the pw_list_box from the RingArray.import
-         5. Reset the input sliders (if applicable).'''
+         5. Reset the input sliders (if applicable).
+         6. Reconfigure quantization on count slider per locked status.'''
         #TODO: There's no reason to replicate the selection state to the working_struct and it's going to get us in trouble. pwapp.pw_interface_selected_rings should be the canonical and only record of this.
         if self.pw_canvas.find_withtag(CURRENT):
             clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
@@ -122,6 +123,11 @@ class PWViewer(PWWidget):
                 print("Enabling and setting input sliders to selected ring values.")
                 self.pwapp.pw_controller.enable_inputs()
                 self.pwapp.pw_controller.set_inputs(sel_ring.radius, sel_ring.count, sel_ring.offsetDegrees)
+                if clicked_ring.id in self.pwapp.working_struct.persistent_state['unlocked_rings']:
+                    self.pwapp.pw_controller.pw_slider_count.quantize = 1
+                else:
+                    self.pwapp.pw_controller.pw_slider_count.quantize = \
+                            1 / len(clicked_ring.scaler_list)
             elif len(self.pwapp.pw_interface_selected_rings) > 1:
                 print("Disabling inputs due to multiple selection.")
                 self.pwapp.pw_controller.clear_inputs()
@@ -174,7 +180,8 @@ class PWViewer(PWWidget):
         1. Propogate selected state back to the working_struct,
         2. Update the interface's internal list of selected items,
         3. Redraw the rings on canvas with new selections.
-        4. Reset the input sliders (if applicable).'''
+        4. Reset the input sliders (if applicable).
+        5. Set pw_slider_count.quantize in accordance with the persistent_state['unlocked_rings']'''
         # IID's are set at creation to coincide with .id property 
         # so we can directly look up the clicked item.
 
@@ -203,6 +210,11 @@ class PWViewer(PWWidget):
             self.pwapp.pw_interface_selected_rings[0].count, \
             self.pwapp.pw_interface_selected_rings[0].offsetDegrees
             self.pwapp.pw_controller.set_inputs(rad, count, offset)
+            if clicked_ring.id in self.pwapp.working_struct.persistent_state['unlocked_rings']:
+                self.pwapp.pw_controller.pw_slider_count.quantize = 1
+            else:
+                self.pwapp.pw_controller.pw_slider_count.quantize = \
+                        1 / len(clicked_ring.scaler_list)
         elif len(self.pwapp.pw_interface_selected_rings) > 1:
             print("Disabling inputs as multiple rings are selected")
             self.pwapp.pw_controller.disable_inputs()
@@ -478,9 +490,11 @@ class PWController(PWWidget):
 
 class PWSlider(tkinter.Frame, PWWidget):
     '''Slider with accompanying input box, native theme, and option to snap to
-    integers. Set 'quantize' to indicate a max number of significant digits
-    (e.g '3' for '3.556', '0' for '3'), and the setter_callback to a function
-    which should receive the final value.'''
+    integers. Set setter_callback to a function which should receive the final
+    value, and 'quantize' to indicate a max number of significant digits (e.g
+    '3' for '3.556', '0' for '3'). Alternately, a fractional 'quantize' value
+    will round to whole number increments, (e.g. .25 (1/4) to round up to 4's).
+    '''
     def __init__(self, setter_callback=None, orient=VERTICAL, length=120, row=None, column=None, quantize=None, **kwargs):
         print("PWSlider being initted; self.pwapp.master is: " + repr(self.pwapp.master))
         super().__init__()
@@ -519,11 +533,21 @@ class PWSlider(tkinter.Frame, PWWidget):
         return self.input_box.get()
 
     def _quantize_value(self, val):
-        if self.quantize is not None:
-            print("Quantizing value to nearest " + str(self.quantize))
+        if self.quantize > 1:
+            print("Quantizing value to nearest ",
+                    str(self.quantize), " decimals.")
             new_val = round(val, self.quantize)
             if new_val % 1 == 0:
                 new_val = int(new_val)
+            print("Raw value: " + str(val) + "; quantized value: " + str(new_val))
+            return new_val
+        elif 0 < self.quantize < 1:
+            step = int(1 / self.quantize)
+            print("Quantizing value to whole number units of ",
+                    str(step))
+            new_val = val // step * step
+            if new_val % step:
+                new_val = new_val + step # round up instead of down
             print("Raw value: " + str(val) + "; quantized value: " + str(new_val))
             return new_val
         else:
