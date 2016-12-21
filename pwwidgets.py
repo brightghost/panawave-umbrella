@@ -5,6 +5,7 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
 
+import radialstructs
 
 class PWWidget:
     '''
@@ -578,8 +579,10 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         else:
             self.master = self.pwapp.master
         tkinter.Frame.__init__(self, self.master, *args, **kwargs)
-        mode_var = tkinter.IntVar()
-        mode_var.set(0) # 0 == 'simple' i.e. equidistant; 1 == 'complex'
+        self.mode_var = tkinter.IntVar()
+        self.mode_var.set(0) #  0 == 'simple' i.e. equidistant
+                             #  1 == 'complex'
+                             # -1 == mixed (no mode selected)
         # http://stackoverflow.com/a/6549535
         self.period_var = tkinter.StringVar()
         self.period_var.trace("w", lambda name, index, mode, sv=self.period_var: self._entry_handler(self.period_var))
@@ -588,10 +591,10 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         self.f_smpl.pack(fill='x')
         self.f_cmpx.pack(fill='x')
         self.pw_rb_simple = ttk.Radiobutton(master=self.f_smpl,
-            text="Equidistant", variable=mode_var, value=0,
+            text="Equidistant", variable=self.mode_var, value=0,
             command=self.pw_rb_simple_selected)
         self.pw_rb_complex = ttk.Radiobutton(master=self.f_cmpx, text="Complex",
-            variable=mode_var, value=1, command=self.pw_rb_complex_selected)
+            variable=self.mode_var, value=1, command=self.pw_rb_complex_selected)
         self.pw_pattern_input = tkinter.Entry(master=self.f_cmpx, textvariable=self.period_var)
         self.pw_pattern_input_label = tkinter.Label(master=self.f_cmpx,
             text="""Enter a comma-delimited list of ratios, for example '1,2,2,1'. The sticker count will refer to multiples of your pattern.""",
@@ -603,10 +606,13 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         self.pw_pattern_input.pack(anchor='w', fill='x', pady=4)
         self.pw_pattern_input_label.pack(anchor='w', pady=4)
 
+        # Attempt to bind to selection
+        self.bind_to_ring(self.pwapp.pw_interface_selected_rings)
+
     def _entry_handler(self, string_var):
         '''Callback attached to updates of the 'Complex' text entry.'''
-        period_entry = string_var.get()
-        l = period_entry.split(",")
+        entered_text = string_var.get()
+        l = entered_text.split(",")
         try:
             for item in l:
                 int(item)
@@ -614,6 +620,48 @@ class PWPeriodController(PWWidget, tkinter.Frame):
             return
         self.update_active_ring_period(l)
 
+    def fmt_scaler_list(self, sl):
+        repr = ""
+        sl.reverse()
+        repr = str(sl.pop())
+        for i in sl:
+            repr += ","
+            repr += str(sl.pop())
+        return repr
+
+    def bind_to_ring(self, ring_or_rings):
+        '''Manually attach this widget to a ring(s). If a selection exists
+        when the widget is initialized, you do not need to call this manually.'''
+        r = ring_or_rings
+        if type(r) is radialstructs.StickerRing:
+            # TODO: Realized in testing...this will never be reached,
+            # because the pw_interface_selected_rings is always a list of 
+            # one or more members.
+            if r.scaler_list is None or '1':
+                self.mode_var.set(0)
+                self.pw_rb_simple_selected()
+            elif len(r.scaler_list) > 1:
+                self.mode_var.set(1)
+                self.pw_pattern_input.delete(0, END)
+                self.pw_pattern_input.insert(0, self.fmt_scaler_list(r.scaler_list))
+                self.pw_rb_complex_selected()
+        else:
+            # attempt to enable the widget only if all selected rings
+            # are in agreement
+            first_sl = r[0].scaler_list
+            if all(len(ring.scaler_list) == 1 for ring in r):
+                self.mode_var.set(0)
+                self.pw_rb_simple_selected()
+            elif all(ring.scaler_list == first_sl for ring in r):
+                self.mode_var.set(1)
+                self.pw_pattern_input.delete(0, END)
+                self.pw_pattern_input.insert(0, self.fmt_scaler_list(first_sl))
+                self.pw_rb_complex_selected()
+            else:
+                print("Multiple rings selected and their scaler_lists are "
+                        "not in agreement; not selecting either mode.")
+                self.mode_var.set(-1)
+                print("mode_var is: ", self.mode_var)
 
     def pw_rb_simple_selected(self):
         '''Changing the selected mode only affects the interface state; changes
@@ -621,21 +669,28 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         print("Disabling input box because simple mode was selected.")
         self.pw_pattern_input.config(state=tkinter.DISABLED)
         self.pw_pattern_input_label.config(state=tkinter.DISABLED)
+        self.update_active_ring_period([1])
 
     def pw_rb_complex_selected(self):
         '''Enable input box when complex mode is selected.'''
         print("Enabling input box because complex mode was selected.")
         self.pw_pattern_input.config(state=tkinter.NORMAL)
         self.pw_pattern_input_label.config(state=tkinter.NORMAL)
+        self._entry_handler(self.period_var)
 
     def commit_changes(self):
         '''Apply the inputted settings to the selected ring(s)'''
         pass
 
+    def cancel_changes(self):
+        #TODO: rollback "previewed" changes
+        pass
+
     def update_active_ring_period(self, scaler_list):
+        '''Apply the given scaler_list to the selected rings(s)'''
         for ring in self.pwapp.pw_interface_selected_rings:
             print("updating scaler_list of ring ", repr(ring), " with value: ", repr(scaler_list))
-            self.pwapp.pw_interface_selected_rings[0].set_scaler_list(scaler_list)
+            ring.set_scaler_list(scaler_list)
         self.pwapp.viewer._rebuild_pw_canvas()
 
 
