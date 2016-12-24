@@ -288,6 +288,35 @@ class PanawaveStruct:
         for ring in self.ring_array:
             ring.selected = False
 
+    def lock_ring_count_to_scaler(self, ring):
+        '''Lock the given ring's count to multiples of the scaler_list. This is
+        the default state for new rings.'''
+        unlock_l = self.persistent_state['unlocked_rings']
+            # True = lock
+        if str(ring.id) in unlock_l:
+            print("Removing ring ", ring.id, " from the unlocked_rings list because lock_ring_count_to_scaler() was called.")
+            unlock_l.remove(str(ring.id))
+        else:
+            print("lock_ring_count_to_scaler() was called on ring ", ring.id, " but it is already locked.")
+
+    def unlock_ring_count_from_scaler(self, ring):
+        '''Unlink the given ring's count from multiples of the scaler_list.
+        This is not an attribute of the StickerRing itself, because it is
+        considered an interface state.'''
+        unlock_l = self.persistent_state['unlocked_rings']
+            # True = lock
+        if string(ring.id) not in unlock_l:
+            print("Adding ring", ring.id, " to the unlocked_ring list because unlock_ring_count_from_scaler() was called.")
+            unlock_l.append(str(ring.id))
+        else:
+            print("unlock_ring_count_from_scaler() was called on ring ", ring.id, " but it is already unlocked.")
+
+    def is_count_locked_for_ring(self, ring):
+        '''Returns True if given ring's sticker count is locked to multiples of
+        the scaler list.'''
+        unlock_l = self.persistent_state['unlocked_rings']
+        if str(ring.id) not in unlock_l:
+            return True
 
     # File Input/Output Methods:
 

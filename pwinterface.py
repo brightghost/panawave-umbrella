@@ -231,6 +231,9 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
             self.prior_scaler_states.append(deepcopy(r.scaler_list))
         print("Stashed scaler_list states prior to spawning period dialog: ",
                 repr(self.prior_scaler_states))
+        self.prior_locked_ring_list_state = deepcopy(self.pwapp.working_struct.persistent_state['unlocked_rings'])
+        print("Stashed unlocked_rings list prior to spawning period dialog: ",
+                repr(self.prior_locked_ring_list_state))
 
         # Interface
         tkinter.Toplevel.__init__(self, master)
@@ -281,12 +284,21 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
             print("Resetting scaler_list of ring ", repr(ring),
                     " to prior value: ", repr(prior_state))
             ring.set_scaler_list(prior_state)
+        self.pwapp.working_struct.persistent_state['unlocked_rings'] = self.prior_locked_ring_list_state
         self.pwapp.viewer._rebuild_pw_canvas()
         self.destroy()
 
     def submit(self, *args):
         '''Close the dialog, saving changes.'''
         # Changes are applied in real-time, so there is nothing to "submit"
+        # We do however need to reset the PWController; although the slider
+        # values cannot be changed by actions taken in the PWPeriodDailog, the
+        # quantize setting for the count slider may.
+        if len(self.pwapp.pw_interface_selected_rings) == 1:
+            self.pwapp.pw_controller.set_inputs_for_ring_obj(self.pwapp.pw_interface_selected_rings[0])
+            # TODO: Eventually PWController will fully support multiple sel;
+            # then we should be calling a version of set_inputs_for_ring_obj
+            # that supports both scenarios.
         self.destroy()
 
 # ===========================================================================
