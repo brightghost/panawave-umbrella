@@ -108,7 +108,8 @@ class StickerRing:
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
-    def __init__(self, radius, count, offsetDegrees=0, scaler_list=[1], geometry=None, id=None):
+    def __init__(self, radius, count, offsetDegrees=0, scaler_list=[1],
+            geometry=None, id=None):
         if id is None:
             self.id = randint(10000,99999)
         else:
@@ -147,20 +148,25 @@ class StickerRing:
             i += 1
 
     def _get_increment_val(self):
-        '''Calculate the base increment, from which the various step values will be derived.
-        NOTE: while the interface enforces a 'count == len(scaler_list) / x' relationship, no such restriction exists here, and self.count is the actual count of stickers. Rings which are not evenly divisible by the scaler list will are possible; they just will not have clean radial symmetry.'''
+        '''Calculate the base increment, from which the various step values
+        will be derived.
+
+        NOTE: while by default the interface enforces a 'count ==
+        len(scaler_list) / x' relationship, no such restriction exists here,
+        and self.count is the actual count of stickers. Rings which are not
+        evenly divisible by the scaler list are possible; but they will not
+        have clean radial symmetry.'''
+
         # That said....this *would* be easier if we only allowed divis. counts:
         #   full_sc_list = self.scaler_list * count
         #   incr = 360 / sum(full_sl_list)
-        if not self.scaler_list:
-            return 1 # we would arrive at this same result if we calculated anyway...
         full_scaler_list = []
         for s in range(self.count):
             full_scaler_list.append(self.scaler_list[s % len(self.scaler_list)])
         increment = 360 / sum(full_scaler_list)
-        print("Calculated new ring increment of " + str(increment) + " from scaler_list: " + repr(self.scaler_list))
+        print("Calculated new ring increment of ", str(increment),
+                " from scaler_list: ", repr(self.scaler_list))
         return increment
-
 
     def set_radius(self, new_radius):
         '''Setter for radius; will re-initialize the object.'''
@@ -295,10 +301,13 @@ class PanawaveStruct:
         unlock_l = self.persistent_state['unlocked_rings']
             # True = lock
         if str(ring.id) in unlock_l:
-            print("Removing ring ", ring.id, " from the unlocked_rings list because lock_ring_count_to_scaler() was called.")
+            print("Removing ring ", ring.id,
+                    " from the unlocked_rings list because "
+                    "lock_ring_count_to_scaler() was called.")
             unlock_l.remove(str(ring.id))
         else:
-            print("lock_ring_count_to_scaler() was called on ring ", ring.id, " but it is already locked.")
+            print("lock_ring_count_to_scaler() was called on ring ",
+                    ring.id, " but it is already locked.")
 
     def unlock_ring_count_from_scaler(self, ring):
         '''Unlink the given ring's count from multiples of the scaler_list.
@@ -307,10 +316,13 @@ class PanawaveStruct:
         unlock_l = self.persistent_state['unlocked_rings']
             # True = lock
         if string(ring.id) not in unlock_l:
-            print("Adding ring", ring.id, " to the unlocked_ring list because unlock_ring_count_from_scaler() was called.")
+            print("Adding ring", ring.id,
+                    " to the unlocked_ring list because "
+                    "unlock_ring_count_from_scaler() was called.")
             unlock_l.append(str(ring.id))
         else:
-            print("unlock_ring_count_from_scaler() was called on ring ", ring.id, " but it is already unlocked.")
+            print("unlock_ring_count_from_scaler() was called on ring ",
+                    ring.id, " but it is already unlocked.")
 
     def is_count_locked_for_ring(self, ring):
         '''Returns True if given ring's sticker count is locked to multiples of
@@ -400,12 +412,13 @@ class PanawaveStruct:
         working_canvas = canvas
         working_canvas.delete("all")
         for ringnum, ring in enumerate(self.ring_array.values()):
-            increment = self.persistent_state["master_orbit_speed"] * ring.radial_speed
+            increment = self.persistent_state["master_orbit_speed"] \
+                    * ring.radial_speed
             print("Ring ", ringnum, " position at start: ", ring.offsetDegrees)
             print("Rotating ring ", ringnum, " by increment ", increment)
             ring.rotate(increment)
-            print("Ring ", ringnum, \
-                    " position after rotation: ", ring.offsetDegrees)
+            print("Ring ", ringnum, " position after rotation: ",
+                    ring.offsetDegrees)
         self.draw(working_canvas)
 
     def _animate_orbit(self):
