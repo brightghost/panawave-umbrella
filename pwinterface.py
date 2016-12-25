@@ -57,10 +57,6 @@ class PanawaveApp:
         self.working_struct = self.load_new_struct(file,
                 target_canvas=self.viewer.pw_canvas)
 
-        # Interface history variables
-        self.console_history = []
-        self.console_history_offset = 0
-
         # DEBUG IPython Console:
         embed()
 
@@ -93,13 +89,31 @@ class PanawaveApp:
 
         # MAIN VIEW:
         self.viewer = PWViewer()
+
         # CANVAS
         self.viewer.create_canvas(row=0, column=0, rowspan=5)
+
         # LISTBOX
         self.viewer.create_list(row=0, column=1, columnspan=3)
+
         # CONSOLE BUTTON
-        self.console_button = ttk.Button(text=">", width=2)
-        self.viewer.pw_canvas.create_window(-330, 330, anchor=SW, window=self.console_button)
+        # Originally was pursuing use of canvas.create_window for this, but it
+        # requires a redraw every time the canvas is cleared. While this method
+        # works, it results in the button flickering every time the canvas is
+        # drawn. Research suggests best-practice is to not redraw canvas by
+        # deleting, but instead to move existing objects. This will
+        # substantially complicate our existing PanawaveStruct layout code, and
+        # anyway the current method behaves well with polygon objects.
+        # Currently investigating use of .pack() geom. manager, instead.
+
+        self.console_button = PWButton(self.master, text=">",
+                width=2)
+        self.console_button.place(relx=0.02, rely=.92)
+                # This is currently broken; the geom. of the parent window
+                # currently seems to be larger than the actual geometry drawn,
+                # and thus rel.  values are not drawing where expected and
+                # don't stay in the same relative position as window it
+                # resized.
 
         # RING CONTROL:
         self.pw_controller = PWController()

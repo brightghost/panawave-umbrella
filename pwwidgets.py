@@ -835,8 +835,8 @@ class PWConsole(PWWidget):
 
     def __init__(self):
         self.input_var = tkinter.StringVar
-        self.pw_console = tkinter.Entry(master=self.master, textvariable=self.input_var)
         self.console_history = []
+        self.pw_console = tkinter.Entry(master=self.master, textvariable=self.input_var)
 
     def execute_console_input(self, *args):
         '''execute arbitrary commands from the console box,
