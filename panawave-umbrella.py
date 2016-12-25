@@ -18,7 +18,7 @@ def pw_json_serializer(object):
 
 def tracefunc(frame, event, arg, indent=[0]):
     '''Debugging function which can be attached to all function calls.
-    http://stackoverflow.com/questions/8315389/how-do-i-print-functions-as-they-are-called
+    http://stackoverflow.com/a/8315566
     '''
     if event == "call":
         indent[0] += 2
