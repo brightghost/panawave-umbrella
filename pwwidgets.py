@@ -665,12 +665,10 @@ class PWPeriodController(PWWidget, tkinter.Frame):
         self.update_active_ring_period(l)
 
     def fmt_scaler_list(self, sl):
-        repr = ""
-        sl.reverse()
-        repr = str(sl.pop())
-        for i in sl:
-            repr += ","
-            repr += str(sl.pop())
+        '''Returns a textual representaion of a scaler_list, compatible with
+        PWPeriodController's text input.'''
+        str_sl = [str(v) for v in sl]
+        repr = ', '.join(str_sl)
         return repr
 
     def bind_to_ring(self, ring_or_rings):
