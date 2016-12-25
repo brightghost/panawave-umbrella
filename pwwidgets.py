@@ -394,7 +394,7 @@ class PWController(PWWidget):
         selections.'''
         self.pw_slider_radius = PWSlider(setter_callback=self.update_active_ring_radius, quantize=2, from_=200.0, to=1.0)
         self.pw_slider_radius.input_box.bind("<Return>", self.submit_new_ring)
-        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, details_button_callback=self.spawn_period_dialog, quantize=1, from_=50.0, to=1.0)
+        self.pw_slider_count = PWDetailedSlider(setter_callback=self.update_active_ring_count, details_button_callback=self.spawn_period_dialog, quantize=0, from_=50.0, to=1.0)
         self.pw_slider_count.input_box.bind("<Return>", self.submit_new_ring)
         self.pw_slider_offset = PWSlider(setter_callback=self.update_active_ring_offset, quantize=1, from_=360.0, to=0.0)
         self.pw_slider_offset.input_box.bind("<Return>", self.submit_new_ring)
@@ -463,10 +463,9 @@ class PWController(PWWidget):
             r.offsetDegrees
         self.set_inputs(rad, count, offset)
         if r.id in self.pwapp.working_struct.persistent_state['unlocked_rings']:
-            self.pw_slider_count.quantize = 1
+            self.pw_slider_count.quantize = 0
         else:
-            self.pw_slider_count.quantize = \
-                    1 / len(r.scaler_list)
+            self.pw_slider_count.quantize = 1 / len(r.scaler_list)
 
     def clear_inputs(self):
         '''Reset all input widgets to zero value. Controls should be explicitly disabled with disable_inputs() if appropriate.'''
@@ -538,10 +537,20 @@ class PWSlider(tkinter.Frame, PWWidget):
 
     def _quantize_value(self, val):
         '''Sanitize raw values according to spec:
-        whole num. values:  truncate given float to specified decimal places
-        fractional values:  round up to the reciprocal whole-number increment
-                        0:  no quantization performed'''
-        if self.quantize >= 1:
+
+           negative value:  no quantization performed
+                        0:  truncate all decimals
+        whole num. values:  truncate to specified decimal places
+        fractional values:  round up to the reciprocal whole-number increment.
+
+        NOTE: there is a sort of quantization done also by the ttk.Scale before
+        its values are given to us, as it tries to rationalize the range of the
+        control with it's pixel size as drawn. Therefor, it may not be possible
+        to extract more precision from the controller by setting a higher
+        quantization value. Even so, relying on this method will result in more
+        predictable values, as ttk.Scale's quantization does not correct for
+        floating point math errors.'''
+        if (self.quantize == 0 or self.quantize >= 1):
             print("Quantizing value to nearest ",
                     str(self.quantize), " decimals.")
             new_val = round(val, int(self.quantize))
