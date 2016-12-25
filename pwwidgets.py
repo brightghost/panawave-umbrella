@@ -16,6 +16,7 @@ tkinter widgets as well as a container for app state data.
     '''
     pwapp = None # this needs to be set when the app is instantiated.
 
+
 class PWMenuBar(PWWidget, tkinter.Menu):
     def __init__(self, *args, **kwargs):
         tkinter.Menu.__init__(self, self.pwapp.master)
@@ -98,7 +99,6 @@ class PWViewer(PWWidget):
             if ring.selected:
                 self.pw_list.selection_add(int(ring.id))
 
-
     def _clear_pw_list(self):
         for item in self.pw_list.get_children():
             self.pw_list.delete(item)
@@ -178,7 +178,6 @@ class PWViewer(PWWidget):
         else:
             print("Double clicked empty canvas area; clearing selection.")
             self.pwapp.clear_selection()
-
 
     def _update_ring_selection_with_list_click(self, event):
         '''Formerly _update_ring_selection.  Bound to click events on
@@ -300,47 +299,6 @@ class PWViewer(PWWidget):
             for input in inputs:
                 input.configure(state=DISABLED)
 
-    # !!!!!!!!!!!!!!!!!! TODO TODO TODO !!!!!!!!!!!!!!!!!!!
-    # Are the following three methods being used? Think they need to migrate
-    # to PanawaveStruct
-    # Moved to PWController because this is only called by the widgets therein.
-    # def update_active_ring_radius(self, rad):
-    #     print("updating ring radius with value: ", rad)
-    #     if len(self.pw_interface_selected_rings) == 1:
-    #         self.pw_interface_selected_rings[0].set_radius(rad)
-    #     self.pw_input_radius.delete(0, END)
-    #     self.pw_input_radius.insert(0, rad)
-    #     self._rebuild_pw_canvas()
-    #     self._rebuild_list_box()
-
-    # def update_active_ring_count(self, count):
-    #     if len(self.pw_interface_selected_rings) == 1:
-    #         self.pw_interface_selected_rings[0].set_count(count)
-    #     if self.selected_ring is not None:
-    #         self.selected_ring.set_count(int(count))
-    #         self.selected_ring.draw(self.pw_canvas)
-    #     self.pw_input_count.delete(0, END)
-    #     self.pw_input_count.insert(0, count)
-    #     self._rebuild_pw_canvas()
-    #     self._rebuild_list_box()
-
-    # def update_active_ring_offset(self, deg):
-    #     if len(self.pw_interface_selected_rings) == 1:
-    #         self.pw_interface_selected_rings[0].set_offset(deg)
-    #     if self.selected_ring is not None:
-    #         self.selected_ring.set_offset(deg)
-    #         self.selected_ring.draw(self.pw_canvas)
-    #     self.pw_input_offset.delete(0, END)
-    #     self.pw_input_offset.insert(0, deg)
-    #     self._rebuild_pw_canvas()
-    #     self._rebuild_list_box()
-
-
-
-
-
-
-
 
 class PWCanvas(PWWidget, tkinter.Canvas):
     # basic assumptions of the canvas: origin at center, radial
@@ -361,6 +319,7 @@ class PWCanvas(PWWidget, tkinter.Canvas):
 
 class PWListBox(PWWidget, tkinter.Frame):
     '''A listing of rings, using tkinter.Treeview for dumb reasons.'''
+
     def __init__(self, row=None, column=None, columnspan=None, **kwargs):
         # Parent frame for internal layout management
         tkinter.Frame.__init__(self, self.pwapp.master)
@@ -401,8 +360,6 @@ class PWListBox(PWWidget, tkinter.Frame):
         self.columnconfigure(0, weight=1) # TODO is this accomplishing anything?
         self.rowconfigure(0, weight=1)
         self.grid(row=row, column=column, columnspan=columnspan, sticky=(N,S))
-
-
 
     def add_col(self, heading, text=None, width=64, anchor="e"):
         '''Encapsulating method for the moronic TreeView column interface.'''
@@ -640,6 +597,7 @@ class PWSlider(tkinter.Frame, PWWidget):
 class PWDetailedSlider(PWSlider):
     '''Slider with addition of a context button for accessing additional config.
     Used for the 'count' controller.'''
+
     def __init__(self, *args, **kwargs):
         self.details_button_callback = kwargs.pop("details_button_callback")
         PWSlider.__init__(self, *args, **kwargs)
@@ -659,6 +617,7 @@ class PWDetailedSlider(PWSlider):
 
 class PWPeriodController(PWWidget, tkinter.Frame):
     '''Combined widget which allows selecting either equidistant sticker spacing or a custom periodic sequence for the selected ring.'''
+
     def __init__(self, master=None, *args, **kwargs):
         if master:
             self.master = master
@@ -814,6 +773,7 @@ class PWButton(PWWidget, ttk.Button):
 class PWAnimController(PWWidget, tkinter.Frame):
     '''Combined selection box and animation control button. This widget will
     operate on the working_struct.'''
+
     def __init__(self, values=None, row=None, column=None, columnspan=None):
         '''Define the animation methods list, create and define default values,
         and lay them out.'''
@@ -860,7 +820,6 @@ class PWAnimController(PWWidget, tkinter.Frame):
             self.pwapp.working_struct.orbit(method=self.methods[self.combo.get()])
             self.pwapp.pw_anim_control.toggle_button.configure(text="Stop")
 
-
     def restart_if_animating(self):
         '''Restart animation to incorporate value adjustments. Do nothing if
         not animating.'''
@@ -868,52 +827,58 @@ class PWAnimController(PWWidget, tkinter.Frame):
             self.pwapp.working_struct.stop_animation()
             self.pwapp.working_struct.orbit(method=self.pwapp.working_struct.ephemeral_state['anim_method'])
 
-# =============================================================================
-# Reference shite copied from the previous implementation below. All should be
-# migrated to new classes.
-#
-#    def execute_console_input(self, *args):
-#        '''execute arbitrary commands from the console box,
-#        update the UI, and clear input's contents'''
-#        statement = self.pw_console.get()
-#        self.console_history.append(statement)
-#        try:
-#            eval(statement)
-#        except:
-#            e = sys.exc_info()
-#            print("***Console input generated the following error:***")
-#            print(e)
-#        self.pwapp.working_struct.draw(self.pw_canvas)
-#        self.update_list_box()
-#        sleep(.5)
-#        self.console_history_offset = 0
-#        self.pw_console.delete(0, END)
-#
-#    def navigate_console_history(self, event):
-#        '''walk through input history and replace pw_console contents
-#        the offset is stored as a negative integer, used directly as
-#        a reverse index. This is fine because although the list length
-#        changes every time we input a command, we're not caring about
-#        saving the history index then anyway.'''
-#        print("keypress received: ", event.keysym)
-#        if event.keysym == "Up":
-#            new_offset = self.console_history_offset - 1
-#        elif event.keysym == "Down":
-#            new_offset = self.console_history_offset + 1
-#        print("testing offset: ", new_offset)
-#        hist = self.console_history
-#        hist_len = len(hist)
-#        print("hist len: ", hist_len)
-#        if new_offset >= 0:
-#            # return to a blank slate if we arrive back at the
-#            # end of the history.
-#            self.pw_input_offset = 0
-#            self.pw_console.delete(0, END)
-#            print("reset offset to zero.")
-#            return
-#        if (0 > new_offset >= -hist_len):
-#            self.console_history_offset = new_offset
-#            self.pw_console.delete(0, END)
-#            self.pw_console.insert(END, hist[new_offset])
-#            print ("decided offset ", new_offset, " is valid.")
+
+class PWConsole(PWWidget):
+    '''A textual console to allow the user to interact directly with the
+    underlying methods. A redraw cycle will be triggered after executing each
+    input, to avoid tedium.'''
+
+    def __init__(self):
+        self.input_var = tkinter.StringVar
+        self.pw_console = tkinter.Entry(master=self.master, textvariable=self.input_var)
+        self.console_history = []
+
+    def execute_console_input(self, *args):
+        '''execute arbitrary commands from the console box,
+        update the UI, and clear input's contents'''
+        statement = self.pw_console.get()
+        self.console_history.append(statement)
+        try:
+            eval(statement)
+        except:
+            e = sys.exc_info()
+            print("***Console input generated the following error:***")
+            print(e)
+        self.pwapp.rebuild_views()
+        sleep(.5)
+        self.console_history_offset = 0
+        self.pw_console.delete(0, END)
+
+    def navigate_console_history(self, event):
+        '''walk through input history and replace pw_console contents.
+        the offset is stored as a negative integer, used directly as
+        a reverse index. This is fine because although the list length
+        changes every time we input a command, we're not caring about
+        saving the history index then anyway.'''
+        print("keypress received: ", event.keysym)
+        if event.keysym == "Up":
+            new_offset = self.console_history_offset - 1
+        elif event.keysym == "Down":
+            new_offset = self.console_history_offset + 1
+        print("testing offset: ", new_offset)
+        hist = self.console_history
+        hist_len = len(hist)
+        print("hist len: ", hist_len)
+        if new_offset >= 0:
+            # return to a blank slate if we arrive back at the
+            # end of the history.
+            self.pw_input_offset = 0
+            self.pw_console.delete(0, END)
+            print("reset offset to zero.")
+            return
+        if (0 > new_offset >= -hist_len):
+            self.console_history_offset = new_offset
+            self.pw_console.delete(0, END)
+            self.pw_console.insert(END, hist[new_offset])
+            print ("decided offset ", new_offset, " is valid.")
 
