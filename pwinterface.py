@@ -9,6 +9,7 @@ from math import degrees, radians
 from cmath import exp
 from random import random
 from time import sleep
+from copy import deepcopy
 import json
 import os
 import sys
@@ -111,6 +112,7 @@ class PanawaveApp:
         self.pw_controller.pw_slider_count.details_button.config(command=self.spawn_period_dialog)
 
         self.pw_anim_control = PWAnimController(row=3, column=1, columnspan=3)
+
         # # animation control buttons, row 1 (on/off)
         # # set width manually so layout doesn't jump around when we
         # # change the text
@@ -240,6 +242,92 @@ class PWPeriodDialog:
         # TODO do stuff here....
         self.win.destroy()
 
+    def spawn_period_dialog(self):
+        '''Creates a PWPeriodDialog window and waits for it to return.'''
+        print("Spawning a PWPeriodDialog and waiting for its return...")
+        self.period_dialog = PWPeriodDialog(self.master)
+        self.master.wait_window(self.period_dialog)
+
+
+class PWPeriodDialog(tkinter.Toplevel, PWWidget):
+    '''see PWApp.spawn_period_dialog for handling of the event loop when dialog is created. Inherits from PWWidget only so we can ref pwapp when saving state.'''
+    def __init__(self, master):
+
+        # Stash pre-state for use by self.cancel
+        self.prior_scaler_states = []
+        for r in self.pwapp.pw_interface_selected_rings:
+            self.prior_scaler_states.append(deepcopy(r.scaler_list))
+        print("Stashed scaler_list states prior to spawning period dialog: ",
+                repr(self.prior_scaler_states))
+        self.prior_locked_ring_list_state = deepcopy(self.pwapp.working_struct.persistent_state['unlocked_rings'])
+        print("Stashed unlocked_rings list prior to spawning period dialog: ",
+                repr(self.prior_locked_ring_list_state))
+
+        # Interface
+        tkinter.Toplevel.__init__(self, master)
+        self.period_controller = PWPeriodController(master=self) #override the master inherited from PWWidget because we're casting it in a new window.
+        self.btn_box = tkinter.Frame(self)
+        self.period_controller.pack(padx=12, pady=0, fill='x')
+        self.btn_box.pack(padx=12, pady=12, fill='x')
+        cancel_button = PWButton(master=self.btn_box, text="Cancel", command=self.cancel)
+        submit_button = PWButton(master=self.btn_box, text="Set", command=self.submit, default='active')
+        submit_button.pack(side=tkinter.RIGHT)
+        cancel_button.pack(side=tkinter.RIGHT, padx=6)
+
+        # Bindings
+        self.bind("<Return>", self.submit)
+        self.bind("<Escape>", self.cancel)
+
+
+        # window management
+
+        self.wm_title("Set Sticker Spacing...")
+        self.resizable(width=FALSE, height=FALSE)
+        # grab all input events from other windows
+        self.grab_set()
+        # bunch of bullshit to visually center the dialog over parent...
+        # Force the geometry manager to arrange the widgets so we can
+        # calculate placement based on size
+        self.update()
+        self.parent_center_x = self.master.winfo_rootx() + (self.master.winfo_width() / 2)
+        self.parent_center_y = self.master.winfo_rooty() + (self.master.winfo_height() / 2)
+        self.offset_x = self.parent_center_x - (self.winfo_width() / 2)
+        # y a bit above center because it looks better
+        self.offset_y = self.parent_center_y - (self.winfo_height() /2) - 100
+
+        self.geometry("+%d+%d" % (self.offset_x,
+            self.offset_y))
+
+        # handle closing window from window manager
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
+
+
+    def cancel(self, *args):
+        '''Close the dialog and roll back changes.'''
+        print("Rolling back to prior_scaler_states: ",
+                repr(self.prior_scaler_states))
+        for ring, prior_state in zip(
+                self.pwapp.pw_interface_selected_rings,
+                self.prior_scaler_states):
+            print("Resetting scaler_list of ring ", repr(ring),
+                    " to prior value: ", repr(prior_state))
+            ring.set_scaler_list(prior_state)
+        self.pwapp.working_struct.persistent_state['unlocked_rings'] = self.prior_locked_ring_list_state
+        self.pwapp.viewer._rebuild_pw_canvas()
+        self.destroy()
+
+    def submit(self, *args):
+        '''Close the dialog, saving changes.'''
+        # Changes are applied in real-time, so there is nothing to "submit"
+        # We do however need to reset the PWController; although the slider
+        # values cannot be changed by actions taken in the PWPeriodDailog, the
+        # quantize setting for the count slider may.
+        if len(self.pwapp.pw_interface_selected_rings) == 1:
+            self.pwapp.pw_controller.set_inputs_for_ring_obj(self.pwapp.pw_interface_selected_rings[0])
+            # TODO: Eventually PWController will fully support multiple sel;
+            # then we should be calling a version of set_inputs_for_ring_obj
+            # that supports both scenarios.
+        self.destroy()
 
 # ===========================================================================
 # Reference shite left over below.
