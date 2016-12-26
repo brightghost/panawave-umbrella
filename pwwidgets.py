@@ -4,6 +4,8 @@ from tkinter import N,E,S,W, VERTICAL, HORIZONTAL, END, CURRENT, DISABLED, NORMA
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
 from tkinter import ttk
+import sys
+from time import sleep
 
 import radialstructs
 
@@ -795,6 +797,8 @@ class PWAnimController(PWWidget, tkinter.Frame):
         self.toggle_button.grid(row=0, column=1, rowspan=2, padx=4, pady=2)
         self.speedslider = ttk.Scale(self, orient=HORIZONTAL, from_=0, to=3, value=1.5, takefocus=False, command=self._set_anim_speed)
         self.speedslider.grid(row=1, column=0, sticky=(W,E), pady=2)
+
+        # Place the container widget
         self.grid(row=row, column=column, columnspan=columnspan, sticky=(E,W), pady=4)
         self.columnconfigure(0, weight=1)
 
@@ -833,15 +837,30 @@ class PWConsole(PWWidget):
     underlying methods. A redraw cycle will be triggered after executing each
     input, to avoid tedium.'''
 
-    def __init__(self):
+    def __init__(self, *args, master=None, **kwargs):
+        if master:
+            self.master = master
         self.input_var = tkinter.StringVar
         self.console_history = []
-        self.pw_console = tkinter.Entry(master=self.master, textvariable=self.input_var)
+        self.console_history_offset = 0
+        self.console_input = ttk.Entry(*args, master=self.master, textvariable=self.input_var, **kwargs)
+
+    def draw_console(self):
+        self.console_input.place(relx=0.1, rely=.92, relwidth=.85)
+
+    def hide_console(self):
+        self.console_input.place_forget()
+
+    def toggle_console(self):
+        if self.console_input.winfo_viewable():
+            self.hide_console()
+        else:
+            self.draw_console()
 
     def execute_console_input(self, *args):
         '''execute arbitrary commands from the console box,
         update the UI, and clear input's contents'''
-        statement = self.pw_console.get()
+        statement = self.console_input.get()
         self.console_history.append(statement)
         try:
             eval(statement)
@@ -852,10 +871,10 @@ class PWConsole(PWWidget):
         self.pwapp.rebuild_views()
         sleep(.5)
         self.console_history_offset = 0
-        self.pw_console.delete(0, END)
+        self.console_input.delete(0, END)
 
     def navigate_console_history(self, event):
-        '''walk through input history and replace pw_console contents.
+        '''walk through input history and replace console_input contents.
         the offset is stored as a negative integer, used directly as
         a reverse index. This is fine because although the list length
         changes every time we input a command, we're not caring about
@@ -873,12 +892,12 @@ class PWConsole(PWWidget):
             # return to a blank slate if we arrive back at the
             # end of the history.
             self.pw_input_offset = 0
-            self.pw_console.delete(0, END)
+            self.console_input.delete(0, END)
             print("reset offset to zero.")
             return
         if (0 > new_offset >= -hist_len):
             self.console_history_offset = new_offset
-            self.pw_console.delete(0, END)
-            self.pw_console.insert(END, hist[new_offset])
+            self.console_input.delete(0, END)
+            self.console_input.insert(END, hist[new_offset])
             print ("decided offset ", new_offset, " is valid.")
 

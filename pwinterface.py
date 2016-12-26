@@ -102,18 +102,25 @@ class PanawaveApp:
         # works, it results in the button flickering every time the canvas is
         # drawn. Research suggests best-practice is to not redraw canvas by
         # deleting, but instead to move existing objects. This will
-        # substantially complicate our existing PanawaveStruct layout code, and
-        # anyway the current method behaves well with polygon objects.
-        # Currently investigating use of .pack() geom. manager, instead.
+        # substantially complicate our existing PanawaveStruct layout code
+        # however, and anyway the current method behaves well with polygon
+        # objects.  Currently investigating use of .pack() geom. manager,
+        # instead.
 
-        self.console_button = PWButton(self.master, text=">",
-                width=2)
+        self.console = PWConsole(master=self.viewer.pw_canvas)
+        self.console_button = PWButton(self.viewer.pw_canvas, text=">",
+                width=2, command=self.console.toggle_console)
         self.console_button.place(relx=0.02, rely=.92)
                 # This is currently broken; the geom. of the parent window
                 # currently seems to be larger than the actual geometry drawn,
-                # and thus rel.  values are not drawing where expected and
-                # don't stay in the same relative position as window it
-                # resized.
+                # and thus rel. values are not drawing where expected and don't
+                # stay in the same relative position as window is resized.
+        self.console.console_input.bind("<Return>",
+                self.console.execute_console_input)
+        self.console.console_input.bind("<Up>",
+                self.console.navigate_console_history)
+        self.console.console_input.bind("<Down>",
+                self.console.navigate_console_history)
 
         # RING CONTROL:
         self.pw_controller = PWController()
@@ -147,12 +154,6 @@ class PanawaveApp:
         #         command=self.orbit_inverse_linearly)
         # self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
 
-        # # console
-        # self.pw_console = Entry()
-        # self.pw_console.grid(row=5, column=0, columnspan=1, sticky=(W,E))
-        # self.pw_console.bind("<Return>", self.execute_console_input)
-        # self.pw_console.bind("<Up>", self.navigate_console_history)
-        # self.pw_console.bind("<Down>", self.navigate_console_history)
 
         # CANVAS BINDINGS
 

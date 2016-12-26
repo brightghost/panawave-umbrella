@@ -108,7 +108,7 @@ class StickerRing:
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
 
-    def __init__(self, radius, count, offsetDegrees=0, scaler_list=[1], geometry=None, id=None):
+    def __init__(self, radius, count, offsetDegrees=0, scaler_list=[1,], geometry=None, id=None):
         if id is None:
             self.id = randint(10000,99999)
         else:
@@ -120,6 +120,7 @@ class StickerRing:
         self.count = int(count)
         self.offsetDegrees = float(offsetDegrees)
         self.scaler_list = scaler_list
+        print("New ring being initialized with scaler_list", repr(self.scaler_list), " (Type: ", type(self.scaler_list), ")")
         self._initialize_geometry()
 
     def _initialize_geometry(self):
@@ -265,7 +266,7 @@ class PanawaveStruct:
 
     # Working with child  objects:
 
-    def add_ring(self, *args):
+    def add_ring(self, *args, **kwargs):
         '''create a new StickerRing using the arguments. Will attempt to
         eval the argument first, so you can pass arithmetic expressions also'''
         evaluated_args = []
@@ -276,12 +277,11 @@ class PanawaveStruct:
                 # Some of the args may handle strings, lists etc.,
                 # so just let the StickerRing deal with them
                 evaluated_args.append(arg)
-                evaluated_args.append(arg)
         self.canvas.delete("all")
 
         # We need to initialize the new ring before adding it to the ring_array
         # so we can reference it's id as the key.
-        new_ring = StickerRing(*evaluated_args)
+        new_ring = StickerRing(*evaluated_args, **kwargs)
         self.ring_array[str(new_ring.id)] = new_ring
 
     def clear_selection(self):
