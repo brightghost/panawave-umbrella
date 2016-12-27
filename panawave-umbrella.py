@@ -6,6 +6,8 @@ import sys
 from IPython import embed
 
 from pwinterface import PanawaveApp
+import pwlogging
+import logging as log
 
 
 def pw_json_serializer(object):
@@ -29,7 +31,9 @@ def tracefunc(frame, event, arg, indent=[0]):
     return tracefunc
 
 if __name__ == "__main__":
-    print("initializing Panawave Umbrella Editor...")
+    # configure logging
+    pwlogging.create_logger(level=log.DEBUG)
+    log.info("initializing Panawave Umbrella Editor...")
     profile = False
     if profile == True:
         sys.setprofile(tracefunc)
