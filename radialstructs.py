@@ -1,3 +1,4 @@
+import logging as log
 from math import degrees, radians
 from cmath import exp
 from random import random, randint
@@ -122,7 +123,12 @@ class StickerRing:
         self.count = int(count)
         self.offsetDegrees = float(offsetDegrees)
         self.scaler_list = scaler_list
-        print("New ring being initialized with scaler_list", repr(self.scaler_list), " (Type: ", type(self.scaler_list), ")")
+        log.debug("New ring being initialized with radius {0}, count {1}, "
+                "offset {2}, and scaler_list {3}".format(
+                    repr(self.radius),
+                    repr(self.count),
+                    repr(self.offsetDegrees),
+                    repr(self.scaler_list)))
         self._initialize_geometry()
 
     def _initialize_geometry(self):
@@ -166,8 +172,9 @@ class StickerRing:
         for s in range(self.count):
             full_scaler_list.append(self.scaler_list[s % len(self.scaler_list)])
         increment = 360 / sum(full_scaler_list)
-        print("Calculated new ring increment of ", str(increment),
-                " from scaler_list: ", repr(self.scaler_list))
+        log.debug("Calculated new ring increment of {0} from "
+                "scaler_list: {1}".format(
+                str(increment), repr(self.scaler_list)))
         return increment
 
     def set_radius(self, new_radius):
@@ -302,13 +309,12 @@ class PanawaveStruct:
         unlock_l = self.persistent_state['unlocked_rings']
             # True = lock
         if str(ring.id) in unlock_l:
-            print("Removing ring ", ring.id,
-                    " from the unlocked_rings list because "
-                    "lock_ring_count_to_scaler() was called.")
+            log.debug("Removing ring {0} from the unlocked_rings list because "
+                    "lock_ring_count_to_scaler was called.".format(ring.id))
             unlock_l.remove(str(ring.id))
         else:
-            print("lock_ring_count_to_scaler() was called on ring ",
-                    ring.id, " but it is already locked.")
+            log.debug("lock_ring_count_to_scaler was called on ring {0}, "
+                    "but it is already locked.".format(ring.id))
 
     def unlock_ring_count_from_scaler(self, ring):
         '''Unlink the given ring's count from multiples of the scaler_list.
@@ -316,14 +322,13 @@ class PanawaveStruct:
         considered an interface state.'''
         unlock_l = self.persistent_state['unlocked_rings']
             # True = lock
-        if string(ring.id) not in unlock_l:
-            print("Adding ring", ring.id,
-                    " to the unlocked_ring list because "
-                    "unlock_ring_count_from_scaler() was called.")
+        if str(ring.id) not in unlock_l:
+            log.debug("Adding ring {0} to the unlocked_ring list because "
+                    "unlock_ring_count_from_scaler was called.".format(ring.id))
             unlock_l.append(str(ring.id))
         else:
-            print("unlock_ring_count_from_scaler() was called on ring ",
-                    ring.id, " but it is already unlocked.")
+            log.debug("unlock_ring_count_from_scaler was called on ring {0}, "
+                    "but it is already unlocked.".format(ring.id))
 
     def is_count_locked_for_ring(self, ring):
         '''Returns True if given ring's sticker count is locked to multiples of
@@ -398,7 +403,7 @@ class PanawaveStruct:
             for index, ring in enumerate(self.ring_array.values()):
                 ring.radial_speed = speed_step * (len(self.ring_array) - index)
         else:
-            print("Received an invalid orbit method: '" + method + "'. exiting.")
+            log.debug("Received an invalid orbit method: '" + method + "'. exiting.")
             return
         # Linear speed, units/sec.
         if canvas is None:
@@ -415,11 +420,11 @@ class PanawaveStruct:
         for ringnum, ring in enumerate(self.ring_array.values()):
             increment = self.persistent_state["master_orbit_speed"] \
                     * ring.radial_speed
-            print("Ring ", ringnum, " position at start: ", ring.offsetDegrees)
-            print("Rotating ring ", ringnum, " by increment ", increment)
+            log.debug("Ring {0} position at start: {1}".format(ringnum, ring.offsetDegrees))
+            log.debug("Rotating ring {0} by increment {1}".format(ringnum, increment))
             ring.rotate(increment)
-            print("Ring ", ringnum, " position after rotation: ",
-                    ring.offsetDegrees)
+            log.debug("Ring {0} position after rotation: {1}".format(
+                ringnum, ring.offsetDegrees))
         self.draw(working_canvas)
 
     def _animate_orbit(self):

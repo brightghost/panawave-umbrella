@@ -1,3 +1,4 @@
+import logging as log
 import tkinter
 # tkinter constants that are easier to ref in the base namespace
 from tkinter import N,E,S,W, VERTICAL, HORIZONTAL, END, CURRENT, DISABLED, NORMAL
@@ -79,7 +80,7 @@ class PWViewer(PWWidget):
 
     def _rebuild_pw_canvas(self):
         '''Clear and then redraw the working_struct to the canvas.'''
-        print("REDRAWING CANVAS")
+        log.debug("REDRAWING CANVAS")
         self.pw_canvas.delete("all")
         self.pwapp.working_struct.draw(self.pw_canvas)
 
@@ -88,13 +89,13 @@ class PWViewer(PWWidget):
         don't need to bother with re-sorting the ring_array evertime a new draw
         call is issued. IID's are explicitly set to coincide with the
         StickerRing.id to simplify lookups for click events.'''
-        print("REBUILDING LIST")
+        log.debug("REBUILDING LIST")
         self._clear_pw_list()
         sorted_rings = sorted(self.pwapp.working_struct.ring_array.values(),
             key=lambda ring: ring.radius)
-        print("Sorted rings in prep for redrawing listbox; new order:")
+        log.debug("Sorted rings in prep for redrawing listbox; new order:")
         for r in sorted_rings:
-             print(r.radius)
+             log.debug(r.radius)
         for i, ring in enumerate(sorted_rings, start=1):
             self.pw_list.insert(parent="", index=i, iid=int(ring.id),
                 text=i, values=ring.as_tuple())
@@ -127,20 +128,20 @@ class PWViewer(PWWidget):
         # record of this.
         if self.pw_canvas.find_withtag(CURRENT):
             clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
-            print("Clicked on object with id ", clicked_obj_id)
+            log.debug("Clicked on object with id {0}".format(clicked_obj_id))
             try:
                 # check if it's tagged as part of a ring...
                 clicked_ring_tag = next(
                         tag for tag in self.pw_canvas.gettags(
                             clicked_obj_id) if "ring-" in tag)
-                print("The clicked object has the ring tag", clicked_ring_tag)
+                log.debug("The clicked object has the ring tag {0}".format(clicked_ring_tag))
                 clicked_ring = self.pwapp.working_struct.ring_array[clicked_ring_tag.strip("ring-")]
                 clicked_ring_id = clicked_ring_tag.strip("ring-")
-                print("Adding to the selected_ring list the ring with key",
-                        clicked_ring_id)
+                log.debug("Adding to the selected_ring list the ring with "
+                        "key {0}".format(clicked_ring_id))
             except NameError:
                 # it's possible we'll click an object other than a sticker
-                print("A canvas object was clicked but no 'ring-*' tag was found. Must not be a ring object.")
+                log.debug("A canvas object was clicked but no 'ring-*' tag was found. Must not be a ring object.")
                 return
         # Determine action based on which modifier keys may be held down
         # Bitwise 'AND' of the bitmask returned by .state
@@ -148,32 +149,39 @@ class PWViewer(PWWidget):
                 # Ctrl-key modifier is enabled
                 # Toggle the .selected state
                 clicked_ring.toggle_selected_state()
-                print("Ctrl-clicked ring; toggled the selected state of the ring with key", clicked_ring.id)
+                log.debug("Ctrl-clicked ring; toggled the selected state of "
+                        "the ring with key {0}".format(clicked_ring.id))
             else:
                 # no Ctrl-key modifier; reset selection
                 for ring in self.pwapp.working_struct.ring_array.values():
                     ring.selected = False
                 clicked_ring.selected = True
-                print("Clicked a ring without Ctrl modifier; clearing previous selection and selecting ring with key", clicked_ring.id)
+                log.debug("Clicked a ring without Ctrl modifier; clearing "
+                        "previous selection and selecting ring with "
+                        "key {0}".format(clicked_ring.id))
             # Rebuild the pw_interface_selected_rings from the updated data in
             # the PanawaveStruct
-            self.pwapp.pw_interface_selected_rings = [ring for ring in self.pwapp.working_struct.ring_array.values() if ring.selected]
-            print("New contents of pw_interface_selected_rings:", self.pwapp.pw_interface_selected_rings)
+            self.pwapp.pw_interface_selected_rings = [ring for ring in \
+                    self.pwapp.working_struct.ring_array.values() if \
+                    ring.selected]
+            log.debug("New contents of pw_interface_selected_rings: {0}".format(
+                self.pwapp.pw_interface_selected_rings))
             # Redraw with the newly-selected rings;
             # rebuild the list_box with newly-selected rings.
             self.rebuild()
             # Reset or disable input sliders if ring(s) selected
             if len(self.pwapp.pw_interface_selected_rings) is 1:
                 sel_ring = self.pwapp.pw_interface_selected_rings[0]
-                print("Enabling and setting input sliders to selected ring values.")
+                log.debug("Enabling and setting input sliders to selected "
+                    "ring values.")
                 self.pwapp.pw_controller.enable_inputs()
                 self.pwapp.pw_controller.set_inputs_for_ring_obj(sel_ring)
             elif len(self.pwapp.pw_interface_selected_rings) > 1:
-                print("Disabling inputs due to multiple selection.")
+                log.debug("Disabling inputs due to multiple selection.")
                 self.pwapp.pw_controller.clear_inputs()
                 self.pwapp.pw_controller.disable_inputs()
         else:
-            print("No CURRENT tag returned, must not have clicked an object.")
+            log.debug("No CURRENT tag returned, must not have clicked an object.")
 
     def _update_ring_selection_with_list_click(self, event):
         '''Formerly _update_ring_selection.  Bound to click events on
@@ -194,8 +202,8 @@ class PWViewer(PWWidget):
         # so we can directly look up the clicked item.
 
         list_selection_array = self.pw_list.selection()
-        print("List box is reporting current selection as: ",
-                list_selection_array)
+        log.debug("List box is reporting current selection as: {0}".format(
+                list_selection_array))
         # Clear the interface's working list of selected items
         self.pwapp.pw_interface_selected_rings = []
         # there's probably a more clever way to do this with a list
@@ -212,12 +220,12 @@ class PWViewer(PWWidget):
             selected_ring.selected = True
         self.pwapp.pw_controller.clear_inputs()
         if len(self.pwapp.pw_interface_selected_rings) == 1:
-            print("Exactly one ring selected; "
+            log.debug("Exactly one ring selected; "
                 "setting input sliders to its values.")
             sel_ring = self.pwapp.pw_interface_selected_rings[0]
             self.pwapp.pw_controller.set_inputs_for_ring_obj(sel_ring)
         elif len(self.pwapp.pw_interface_selected_rings) > 1:
-            print("Disabling inputs due to multiple selection.")
+            log.debug("Disabling inputs due to multiple selection.")
             self.pwapp.pw_controller.clear_inputs()
             self.pwapp.pw_controller.disable_inputs()
         self._rebuild_pw_canvas()
@@ -228,10 +236,10 @@ class PWViewer(PWWidget):
         This is okay, because that handler does nothing when empty canvas is
         clicked.'''
         if self.pw_canvas.find_withtag(CURRENT):
-            print("Double clicked but there was an object under the mouse, "
+            log.debug("Double clicked but there was an object under the mouse, "
                 "taking no action")
         else:
-            print("Double clicked empty canvas area; clearing selection.")
+            log.debug("Double clicked empty canvas area; clearing selection.")
             self._pw_interface_clear_selection()
 
     def _pw_interface_clear_selection(self, event=None):
@@ -241,7 +249,7 @@ class PWViewer(PWWidget):
         for ring in self.pwapp.working_struct.ring_array.values():
             ring.selected = False
         self.rebuild()
-        print("Cleared selection.")
+        log.debug("Cleared selection.")
 
 
 class PWCanvas(PWWidget, tkinter.Canvas):
@@ -372,29 +380,29 @@ class PWController(PWWidget):
 
     def update_active_ring_radius(self, rad):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
-            print("updating ring radius with value: ", rad)
+            log.debug("updating ring radius with value: {0}".format(rad))
             self.pwapp.pw_interface_selected_rings[0].set_radius(rad)
             self.pwapp.rebuild_views()
         else:
-            print("Not updating ring properties because not exactly "
+            log.debug("Not updating ring properties because not exactly "
                     "one ring selected.")
 
     def update_active_ring_count(self, count):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
-            print("updating ring count with value: ", count)
+            log.debug("updating ring count with value: {0}".format(count))
             self.pwapp.pw_interface_selected_rings[0].set_count(int(count))
             self.pwapp.rebuild_views()
         else:
-            print("Not updating ring properties because not exactly "
+            log.debug("Not updating ring properties because not exactly "
                     "one ring selected.")
 
     def update_active_ring_offset(self, deg):
         if len(self.pwapp.pw_interface_selected_rings) == 1:
-            print("updating ring offset with value: ", deg)
+            log.debug("updating ring offset with value: {0}".format(deg))
             self.pwapp.pw_interface_selected_rings[0].set_offset(deg)
             self.pwapp.rebuild_views()
         else:
-            print("Not updating ring properties because not exactly "
+            log.debug("Not updating ring properties because not exactly "
                     "one ring selected.")
 
     def submit_new_ring(self, *args):
@@ -482,8 +490,8 @@ class PWSlider(tkinter.Frame, PWWidget):
 
     def __init__(self, setter_callback=None, orient=VERTICAL, length=120,
             row=None, column=None, quantize=None, **kwargs):
-        print("PWSlider being initted; self.pwapp.master is: ",
-                repr(self.pwapp.master))
+        log.debug("PWSlider being initted; self.pwapp.master is: {0}".format(
+                repr(self.pwapp.master)))
         super().__init__()
         # self.row = kwargs.pop("row")
         # self.col = kwargs.pop("column")
@@ -505,10 +513,10 @@ class PWSlider(tkinter.Frame, PWWidget):
         self.grid(row=row, column=column, pady=4)
         # Initialize with minimum value. Otherwise these are set to null.
         if kwargs['from_']:
-            print("Setting initial slider value to: " + str(kwargs['to']))
+            log.debug("Setting initial slider value to: " + str(kwargs['to']))
             self.set_value(self._quantize_value(kwargs['to']))
         else:
-            print("Setting initial slider value to 0 as no 'to' was declared.")
+            log.debug("Setting initial slider value to 0 as no 'to' was declared.")
             self.set_value(0)
 
     def set_value(self, val):
@@ -540,26 +548,23 @@ class PWSlider(tkinter.Frame, PWWidget):
         predictable values, as ttk.Scale's quantization does not correct for
         floating point math errors.'''
         if (self.quantize == 0 or self.quantize >= 1):
-            print("Quantizing value to nearest ",
-                    str(self.quantize), " decimals.")
+            log.debug("Quantizing value to nearest "
+                     "{0}  decimals".format(str(self.quantize)))
             new_val = round(val, int(self.quantize))
             if new_val % 1 == 0:
                 new_val = int(new_val) # cast ints to ints for display
-            print("Raw value: ", str(val),
-                    "; quantized value: ",
-                    str(new_val))
+            log.debug("Raw value: {0}; quantized value: {1}".format(
+                    str(val), str(new_val)))
             return new_val
         elif 0 < self.quantize < 1:
             step = int(1 / self.quantize)
-            print("Quantizing value to whole number units of ",
-                    str(step))
+            log.debug("Quantizing value to whole number units of {0}".format(
+                    str(step)))
             new_val = int(val // step * step)
             if val % step:
                 new_val = new_val + step # round up instead of down
-            print("Raw value: ",
-                    str(val),
-                    "; quantized value: ",
-                    str(new_val))
+            log.debug("Raw value: {0}; quantized value: {1}".format(
+                    str(val), str(new_val)))
             return new_val
         else:
             return val
@@ -568,8 +573,8 @@ class PWSlider(tkinter.Frame, PWWidget):
         '''Passes the value from slider to input box and sets var when
         adjusted.'''
         new_val = self._quantize_value(self.scale.get())
-        print("Updating input_box value due to slider adjustment, new val: ",
-                new_val)
+        log.debug("Updating input_box value due to slider adjustment, "
+            "new val: {0}".format( new_val))
         self.input_box.delete(0, END)
         self.input_box.insert(0, new_val)
         self.setter_callback(new_val)
@@ -580,8 +585,8 @@ class PWSlider(tkinter.Frame, PWWidget):
         new_val = self.input_box.get()
         if new_val == "":
             new_val = 0
-        print("Updating scale value due to input_box adjustment, new val: ",
-                new_val)
+        log.debug("Updating scale value due to input_box adjustment, "
+            "new val: {0}".format(new_val))
         self.scale.set(new_val)
         self.setter_callback(new_val)
 
@@ -603,10 +608,10 @@ class PWDetailedSlider(PWSlider):
         self.scale.grid(row=1, column=0, pady=4)
         self.input_box.grid(row=2, column=0)
         # subtract the height of the new button from the slider
-        print("PWDetailedSlider Frame height being reported as",
-                self.winfo_height())
-        print("Initial slider and button height being reported as: ",
-                self.scale.winfo_height(), self.details_button.winfo_height())
+        log.debug("PWDetailedSlider Frame height being reported as {0}".format(
+                self.winfo_height()))
+        log.debug("Initial slider and button height being reported as: ".format(
+                self.scale.winfo_height(), self.details_button.winfo_height()))
         # button height is 30, at least on linux. It would be better to
         # reference details_button.winfo_height(), but apparently this value is
         # not calculated until the window is drawn and returns 1 if used here.
@@ -720,15 +725,15 @@ class PWPeriodController(PWWidget, tkinter.Frame):
                 self.pw_pattern_input.insert(0, self.fmt_scaler_list(first_sl))
                 self.pw_rb_complex_selected()
             else:
-                print("Multiple rings selected and their scaler_lists are "
+                log.debug("Multiple rings selected and their scaler_lists are "
                     "not in agreement; not selecting either mode.")
                 self.mode_var.set(-1)
-                print("mode_var is: ", self.mode_var)
+                log.debug("mode_var is: {0}".format(self.mode_var))
 
     def pw_rb_simple_selected(self):
         '''Changing the selected mode in the interface and propogate change to
         selected ring(s) scaler_list's.'''
-        print("Switching selected ring(s) to simple period; disabling input "
+        log.debug("Switching selected ring(s) to simple period; disabling input "
                 "box because simple mode was selected.")
         self.pw_pattern_input.config(state=tkinter.DISABLED)
         self.pw_pattern_input_label.config(state=tkinter.DISABLED)
@@ -737,7 +742,7 @@ class PWPeriodController(PWWidget, tkinter.Frame):
 
     def pw_rb_complex_selected(self):
         '''Enable input box when complex mode is selected.'''
-        print("Swtching selected ring(s) to complex period; enabling input "
+        log.debug("Swtching selected ring(s) to complex period; enabling input "
                 "box because complex mode was selected.")
         self.pw_pattern_input.config(state=tkinter.NORMAL)
         self.pw_pattern_input_label.config(state=tkinter.NORMAL)
@@ -756,8 +761,8 @@ class PWPeriodController(PWWidget, tkinter.Frame):
     def update_active_ring_period(self, scaler_list):
         '''Apply the given scaler_list to the selected rings(s)'''
         for ring in self.pwapp.pw_interface_selected_rings:
-            print("updating scaler_list of ring ", repr(ring),
-                    " with value: ", repr(scaler_list))
+            log.debug("updating scaler_list of ring {0} with value: {1}".format(
+                repr(ring), repr(scaler_list)))
             ring.set_scaler_list(scaler_list)
         self.pwapp.viewer._rebuild_pw_canvas()
 
@@ -888,8 +893,8 @@ class PWConsole(PWWidget):
             eval(statement)
         except:
             e = sys.exc_info()
-            print("***Console input generated the following error:***")
-            print(e)
+            log.debug("***Console input generated the following error:***")
+            log.debug(e)
         self.pwapp.rebuild_views()
         sleep(.5)
         self.console_history_offset = 0
@@ -901,25 +906,25 @@ class PWConsole(PWWidget):
         a reverse index. This is fine because although the list length
         changes every time we input a command, we're not caring about
         saving the history index then anyway.'''
-        print("keypress received: ", event.keysym)
+        log.debug("keypress received: {0}".format(event.keysym))
         if event.keysym == "Up":
             new_offset = self.console_history_offset - 1
         elif event.keysym == "Down":
             new_offset = self.console_history_offset + 1
-        print("testing offset: ", new_offset)
+        log.debug("testing offset: {0}".format(new_offset))
         hist = self.console_history
         hist_len = len(hist)
-        print("hist len: ", hist_len)
+        log.debug("hist len: {0}".format(hist_len))
         if new_offset >= 0:
             # return to a blank slate if we arrive back at the
             # end of the history.
             self.pw_input_offset = 0
             self.console_input.delete(0, END)
-            print("reset offset to zero.")
+            log.debug("reset offset to zero.")
             return
         if (0 > new_offset >= -hist_len):
             self.console_history_offset = new_offset
             self.console_input.delete(0, END)
             self.console_input.insert(END, hist[new_offset])
-            print ("decided offset ", new_offset, " is valid.")
+            log.debug("decided offset {0} is valid.".format(new_offset))
 
