@@ -3,6 +3,7 @@ from cmath import exp
 from random import random, randint
 from time import sleep
 import json
+import os
 
 
 class RotatingPoly:
