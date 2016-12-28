@@ -244,7 +244,7 @@ class PanawaveApp:
         '''Creates a PWPeriodDialog window and waits for it to return.'''
         log.debug("Spawning a PWPeriodDialog and waiting for its return...")
         self.period_dialog = PWPeriodDialog(self.master)
-        self.wait_window(period_dialog.win)
+        self.master.wait_window(self.period_dialog)
 
 
 class PWPeriodDialog(tkinter.Toplevel, PWWidget):
