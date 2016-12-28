@@ -1,3 +1,4 @@
+import logging as log
 import tkinter
 # TODO will be deprecating the toplevel import below in favor of above
 # to clean up our namespace
@@ -192,23 +193,26 @@ class PanawaveApp:
         selected_ring array if it's determined a ring was clicked.'''
         if self.pw_canvas.find_withtag(CURRENT):
             clicked_obj_id = self.pw_canvas.find_withtag(CURRENT)[0]
-            print("Clicked on object with id ", clicked_obj_id)
+            log.debug("Clicked on object with id {0}".format(clicked_obj_id))
             try:
                 clicked_ring_tag = next(
                         tag for tag in self.pw_canvas.gettags(
                             clicked_obj_id) if "ring-" in tag)
-                print("The clicked object has the ring tag", clicked_ring_tag)
+                log.debug("The clicked object has the ring tag {0}".format(
+                    clicked_ring_tag))
                 clicked_ring_id = clicked_ring_tag.strip("ring-")
-                print("Adding to the selected_ring list the ring with key",
-                        clicked_ring_id)
+                log.debug("Adding to the selected_ring list the ring with "
+                        "key {0}".format(clicked_ring_id))
                 self.selected_ring = \
                         self.working_struct.ring_array[clicked_ring_id]
-                print("Updating selected_ring to", self.selected_ring)
+                log.debug("Updating selected_ring to {0}".format(
+                    self.selected_ring))
             except NameError:
                 # it's possible we'll click an object other than a sticker
                 return
         else:
-            print("No CURRENT tag returned, must not have clicked an object.")
+            log.debug("No CURRENT tag returned, must not have clicked "
+                    "an object.")
 
     def rebuild_views(self):
         '''Rebuild the pw_list_box from the current contents of working_struct.
@@ -238,7 +242,7 @@ class PanawaveApp:
 
     def spawn_period_dialog(self):
         '''Creates a PWPeriodDialog window and waits for it to return.'''
-        print("Spawning a PWPeriodDialog and waiting for its return...")
+        log.debug("Spawning a PWPeriodDialog and waiting for its return...")
         self.period_dialog = PWPeriodDialog(self.master)
         self.wait_window(period_dialog.win)
 
@@ -254,12 +258,12 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
         self.prior_scaler_states = []
         for r in self.pwapp.pw_interface_selected_rings:
             self.prior_scaler_states.append(deepcopy(r.scaler_list))
-        print("Stashed scaler_list states prior to spawning period dialog: ",
-                repr(self.prior_scaler_states))
+        log.debug("Stashed scaler_list states prior to spawning period "
+                "dialog: {0}".format(repr(self.prior_scaler_states)))
         self.prior_locked_ring_list_state = deepcopy(
                 self.pwapp.working_struct.persistent_state['unlocked_rings'])
-        print("Stashed unlocked_rings list prior to spawning period dialog: ",
-                repr(self.prior_locked_ring_list_state))
+        log.debug("Stashed unlocked_rings list prior to spawning period "
+                "dialog: {0}".format(repr(self.prior_locked_ring_list_state)))
 
         # Interface
 
@@ -309,13 +313,13 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
 
     def cancel(self, *args):
         '''Close the dialog and roll back changes.'''
-        print("Rolling back to prior_scaler_states: ",
-                repr(self.prior_scaler_states))
+        log.debug("Rolling back to prior_scaler_states: {0}".format(
+                repr(self.prior_scaler_states)))
         for ring, prior_state in zip(
                 self.pwapp.pw_interface_selected_rings,
                 self.prior_scaler_states):
-            print("Resetting scaler_list of ring ", repr(ring),
-                    " to prior value: ", repr(prior_state))
+            log.debug("Resetting scaler_list of ring {0} to prior "
+                    "value: {1}".format(repr(ring), repr(prior_state)))
             ring.set_scaler_list(prior_state)
         self.pwapp.working_struct.persistent_state['unlocked_rings'] = \
                 self.prior_locked_ring_list_state
