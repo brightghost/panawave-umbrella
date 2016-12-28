@@ -507,7 +507,7 @@ class PWSlider(tkinter.Frame, PWWidget):
                 **kwargs)
         self.scale.grid(row=0, column=0, pady=4)
         # Input box
-        self.input_box = tkinter.Entry(self, width=3)
+        self.input_box = ttk.Entry(self, width=3)
         self.input_box.grid(row=1, column=0, sticky=N)
         self.input_box.bind("<FocusOut>", self._input_box_handler)
         self.grid(row=row, column=column, pady=4)
