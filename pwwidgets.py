@@ -822,9 +822,14 @@ class PWAnimController(PWWidget, tkinter.Frame):
                 pady=4)
         self.columnconfigure(0, weight=1)
 
-    def _set_anim_method(self, event, method):
+    def _set_anim_method(self, event, method=None):
         '''Adjust animation method of working_struct and restart animation with
-        the new method if currently active.'''
+        the new method if currently active. Can be passed a shortname of a
+        valid anim method; otherwise will read the selected value from the
+        combo box.'''
+        if not method:
+            method = self.methods[self.combo.get()]
+        print("_set_anim_method invoked with method {0}".format(repr(method)))
         self.pwapp.working_struct.ephemeral_state['anim_method'] = method
         self.restart_if_animating()
 
