@@ -3,7 +3,6 @@ from time import sleep
 import os
 import sys
 # Debugging console
-from IPython import embed
 
 from pwinterface import PanawaveApp
 import pwlogging
