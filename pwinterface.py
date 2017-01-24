@@ -95,8 +95,14 @@ class PanawaveApp:
         # CANVAS
         self.viewer.create_canvas(row=0, column=0, rowspan=5)
 
+        # STICKER CONTROL
+        self.base_sticker_button = PWButton(text="Change...",
+                command=self.spawn_base_sticker_dialog)
+        self.base_sticker_button.grid(row=0,
+                column=1, columnspan=3)
+
         # LISTBOX
-        self.viewer.create_list(row=0, column=1, columnspan=3)
+        self.viewer.create_list(row=1, column=1, columnspan=3)
 
         # CONSOLE BUTTON
         # Originally was pursuing use of canvas.create_window for this, but it
@@ -106,7 +112,7 @@ class PanawaveApp:
         # deleting, but instead to move existing objects. This will
         # substantially complicate our existing PanawaveStruct layout code
         # however, and anyway the current method behaves well with polygon
-        # objects.  Currently investigating use of .pack() geom. manager,
+        # objects.  Currently pursuing use of .place() geom. manager,
         # instead.
 
         self.console = PWConsole(master=self.viewer.pw_canvas)
@@ -126,16 +132,16 @@ class PanawaveApp:
 
         # RING CONTROL:
         self.pw_controller = PWController()
-        self.pw_controller.pw_slider_radius.grid(row=1, column=1)
-        self.pw_controller.pw_slider_count.grid(row=1, column=2)
-        self.pw_controller.pw_slider_offset.grid(row=1, column=3)
-        self.pw_controller.pw_input_submit.grid(row=2, column=1, columnspan=3)
+        self.pw_controller.pw_slider_radius.grid(row=2, column=1)
+        self.pw_controller.pw_slider_count.grid(row=2, column=2)
+        self.pw_controller.pw_slider_offset.grid(row=2, column=3)
+        self.pw_controller.pw_input_submit.grid(row=3, column=1, columnspan=3)
 
         # Bind controller's button to spawn period dialog
         self.pw_controller.pw_slider_count.details_button.config(
                 command=self.spawn_period_dialog)
 
-        self.pw_anim_control = PWAnimController(row=3, column=1, columnspan=3)
+        self.pw_anim_control = PWAnimController(row=4, column=1, columnspan=3)
 
         # # animation control buttons, row 1 (on/off)
         # # set width manually so layout doesn't jump around when we
@@ -156,6 +162,13 @@ class PanawaveApp:
         #         text="Inverse Linear", width=5,
         #         command=self.orbit_inverse_linearly)
         # self.pw_orbit_begin_inverse_linear.grid(row=5, column=3)
+
+        # SIZE CONSTRAINTS:
+        self.master.update() # force calculation of layout
+        # menu_ht = self.master.winfo_rooty() - self.master.winfo_y()
+        menu_ht = self.pw_menu_bar.winfo_reqheight()
+        log.debug("Calculated menubar height as {0}.".format(menu_ht))
+        self.master.minsize(self.master.winfo_width(), (self.master.winfo_height() + menu_ht))
 
 
         # CANVAS BINDINGS
@@ -245,6 +258,12 @@ class PanawaveApp:
         log.debug("Spawning a PWPeriodDialog and waiting for its return...")
         self.period_dialog = PWPeriodDialog(self.master)
         self.master.wait_window(self.period_dialog)
+
+    def spawn_base_sticker_dialog(self):
+        '''Creates a PWBaseStickerDialog window and waits for it to return.'''
+        log.debug("Spawning a PWBaseStickerDialog and waiting for its return...")
+        self.base_sticker_dialog = PWBaseStickerDialog(self.master)
+        # self.master.wait_window(self.base_sticker_dialog)
 
 
 class PWPeriodDialog(tkinter.Toplevel, PWWidget):
@@ -338,5 +357,104 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
             # TODO: Eventually PWController will fully support multiple sel;
             # then we should be calling a version of set_inputs_for_ring_obj
             # that supports both scenarios.
+        self.destroy()
+
+
+class PWBaseStickerDialog(tkinter.Toplevel, PWWidget):
+    '''see PWApp.spawn_base_sticker_dialog() for handling of the event loop
+    when dialog is created. Inherits from PWWidget only so we can ref pwapp
+    when saving state.'''
+
+    def __init__(self, master):
+        # Stash pre-state for use by self.cancel
+
+        # self.prior_scaler_states = []
+        # for r in self.pwapp.pw_interface_selected_rings:
+        #     self.prior_scaler_states.append(deepcopy(r.scaler_list))
+        # log.debug("Stashed scaler_list states prior to spawning period "
+        #         "dialog: {0}".format(repr(self.prior_scaler_states)))
+        # self.prior_locked_ring_list_state = deepcopy(
+        #         self.pwapp.working_struct.persistent_state['unlocked_rings'])
+        # log.debug("Stashed unlocked_rings list prior to spawning period "
+        #        "dialog: {0}".format(repr(self.prior_locked_ring_list_state)))
+
+        # Interface
+
+        tkinter.Toplevel.__init__(self, master)
+                # override the master inherited from PWWidget because we're
+                # casting it in a new window.
+
+        self.tab_view = ttk.Notebook(self)
+        self.tab_view.enable_traversal() # ctl-tab keybindings
+
+        self.sel_base_st_controller = PWBaseStickerController(master=self.tab_view)
+        self.tab_view.add(self.sel_base_st_controller, text="Selection")
+
+        self.master_base_st_controller = PWBaseStickerController(master=self.tab_view)
+        self.tab_view.add(self.master_base_st_controller, text="Master sticker")
+        # self.sel_base_st_controller.pack()
+        # self.master_base_st_controller.pack()
+
+        self.btn_box = tkinter.Frame(self)
+        self.tab_view.pack(padx=12, pady=(12,0), fill='x')
+        self.btn_box.pack(padx=12, pady=12, fill='x')
+        cancel_button = PWButton(master=self.btn_box, text="Cancel",
+                command=self.cancel)
+        submit_button = PWButton(master=self.btn_box, text="Set",
+                command=self.submit, default='active')
+        submit_button.pack(side=tkinter.RIGHT)
+        cancel_button.pack(side=tkinter.RIGHT, padx=6)
+
+        # Bindings
+        self.bind("<Return>", self.submit)
+        self.bind("<Escape>", self.cancel)
+
+
+        # window management
+
+        self.wm_title("Set Sticker Geometry...")
+        self.resizable(width=FALSE, height=FALSE)
+        # grab all input events from other windows
+        self.grab_set()
+        # bunch of bullshit to visually center the dialog over parent...
+        # Force the geometry manager to arrange the widgets so we can
+        # calculate placement based on size
+        self.update()
+        self.parent_center_x = \
+                self.master.winfo_rootx() + (self.master.winfo_width() / 2)
+        self.parent_center_y = \
+                self.master.winfo_rooty() + (self.master.winfo_height() / 2)
+        self.offset_x = \
+                self.parent_center_x - (self.winfo_width() / 2)
+        # y a bit above center because it looks better
+        self.offset_y = \
+                self.parent_center_y - (self.winfo_height() /2) - 100
+
+        self.geometry("+%d+%d" % (self.offset_x, self.offset_y))
+
+        # handle closing window from window manager
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
+
+    def cancel(self, *args):
+        '''Close the dialog and roll back changes.'''
+        # log.debug("Rolling back to prior_scaler_states: {0}".format(
+        #         repr(self.prior_scaler_states)))
+        # for ring, prior_state in zip(
+        #         self.pwapp.pw_interface_selected_rings,
+        #         self.prior_scaler_states):
+        #     log.debug("Resetting scaler_list of ring {0} to prior "
+        #             "value: {1}".format(repr(ring), repr(prior_state)))
+        #     ring.set_scaler_list(prior_state)
+        # self.pwapp.working_struct.persistent_state['unlocked_rings'] = \
+        #         self.prior_locked_ring_list_state
+        self.pwapp.viewer._rebuild_pw_canvas()
+        self.destroy()
+
+    def submit(self, *args):
+        '''Close the dialog, saving changes.'''
+        # Changes are applied in real-time, so there is nothing to "submit"
+        # We do however need to reset the PWController; although the slider
+        # values cannot be changed by actions taken in the PWPeriodDailog, the
+        # quantize setting for the count slider may.
         self.destroy()
 

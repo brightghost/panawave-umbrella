@@ -5,6 +5,7 @@ from random import random, randint
 from time import sleep
 import json
 import os
+from PIL import Image, ImageTk
 
 
 class RotatingPoly:
@@ -33,7 +34,49 @@ class RotatingPoly:
 # for the centroid. anyway for now going to try to reference global position
 # via the centroid only
 
-class PanawavePolygon:
+class PWCanvasObject(object):
+    '''An object which can be drawn to and manipulated on a canvas.'''
+
+    def rotate(self, angle):
+        raise NotImplementedError
+
+    def translate(self, x, y):
+        raise NotImplementedError
+
+    def rotate_about_origin(self, angle):
+        raise NotImplementedError
+
+    def draw(self, canvas):
+        raise NotImplementedError
+
+
+class PanawaveBitmap(PWCanvasObject):
+    '''Create an image from a PIL.Image, optionally allowing manual
+    definition of a centroid point.'''
+
+    def __init__(self, image, centroid=None):
+        log.debug("Initializing PanawaveBitmap from file '{0}'".format(image))
+        self.centroid = centroid
+        self.image = Image.open(image) # I don't know if we need to keep this reference...
+        # we definitely need the next one, tough:
+        # '''Note: When a PhotoImage object is garbage-collected by Python (e.g. when you
+        # return from a function which stored an image in a local variable), the image is
+        # cleared even if it’s being displayed by a Tkinter widget.'''
+        # - http://effbot.org/tkinterbook/photoimage.htm
+        self.tkimage = ImageTk.PhotoImage(self.image)
+
+    def rotate(self, angle):
+        self.tkimage.rotate(-angle, expand=True)
+
+    def translate(self, x, y):
+        self.tkimage.rotate(0, translate=(x,y))
+
+    def draw(self, canvas, selected=False, tags=None):
+        '''draw our bitmap to the indicated canvas.'''
+        canvas.create_image(0, 0, image=self.tkimage, tags=tags)
+
+
+class PanawavePolygon(PWCanvasObject):
     '''create a polygon from a list of tuples defining an enclosed poly,
     optionally allowing manual definition of centroid point.
     '''
@@ -96,11 +139,16 @@ class PanawavePolygon:
         new_complex_centroid = complex(cX, cY) * complex_angle
         self.centroid = new_complex_centroid.real, new_complex_centroid.imag
 
-    def draw(self, canvas):
+    def draw(self, canvas, selected=False, tags=None):
         '''draw our polygon to the indicated canvas.'''
         # '*self.points' unpacks the items as separate arguments 
-        canvas.create_polygon(*self.points)
-
+        # TODO maybe some fancy intereference-detection on stickers
+        # that are touching.
+        if selected:
+            canvas.create_polygon(*self.points, outline="#4285F4",
+                    width=2.0, tags=tags)
+        else:
+            canvas.create_polygon(*self.points, tags=tags)
 
 class StickerRing:
     '''create and manage a ring of regularly-spaced poly objects.
@@ -109,6 +157,7 @@ class StickerRing:
     setters do currently.'''
 
     baseStickerPoly = [[0, 0], [0, 20], [20, 20], [20, 0]]
+    base_sticker_bitmap = None
 
     def __init__(self, radius, count, offsetDegrees=0, scaler_list=[1],
             geometry=None, id=None):
@@ -132,11 +181,15 @@ class StickerRing:
         self._initialize_geometry()
 
     def _initialize_geometry(self):
+        '''Recalculate geometry with current ring definition, and populate the sticker_list.'''
         self.increment = self._get_increment_val()
         self.sticker_list = []
         prev_offset = 0
         for s in self._stepper(self.count, self.scaler_list):
-            p = PanawavePolygon(self.baseStickerPoly)
+            if self.base_sticker_bitmap:
+                p = PanawaveBitmap(self.base_sticker_bitmap)
+            else:
+                p = PanawavePolygon(self.baseStickerPoly)
             # center the centroid at canvas origin before other moves
             p.translate((0 - p.centroid[0]), (0 - p.centroid[1]))
             p.translate(0, self.radius)
@@ -176,6 +229,25 @@ class StickerRing:
                 "scaler_list: {1}".format(
                 str(increment), repr(self.scaler_list)))
         return increment
+
+    def set_base_sticker(self, point_list=None, bitmap=None):
+        '''Change the baseStickerPoly for this ring. Accepts a list of tuples
+        defining an enclosed polygon; alternatively, a pathname can be passed to
+        the bitmap argument to use an image. If the bitmap argument is present,
+        any geometry will be ignored. Call with no arguments to reset to the
+        class base poly.'''
+        if point_list is None:
+            point_list = StickerRing.baseStickerPoly
+        if type(bitmap) is 'str':
+            log.info("Clearing baseStickerPoly and assigning bitmap sticker for ring {0}.".format(self.id))
+            im = Image.open(bitmap)
+            self.base_sticker_bitmap = ImageTk.PhotoImage(im)
+            self.baseStickerPoly = None
+        else:
+            log.info("Resetting baseStickerPoly for ring {0} to {1}".format(self.id, point_list))
+            self.baseStickerPoly = point_list
+            self.base_sticker_bitmap = None
+        self._initialize_geometry()
 
     def set_radius(self, new_radius):
         '''Setter for radius; will re-initialize the object.'''
@@ -220,13 +292,7 @@ class StickerRing:
         '''plot stickerRing to a canvas'''
         ring_tag = "ring-" + str(self.id)
         for sticker in self.sticker_list:
-            if self.selected:
-                # TODO maybe some fancy intereference-detection on stickers
-                # that are touching.
-                canvas.create_polygon(*sticker.points, outline="#4285F4",
-                        width=2.0, tags=ring_tag)
-            else:
-                canvas.create_polygon(*sticker.points, tags=ring_tag)
+                sticker.draw(canvas, selected=self.selected, tags=ring_tag)
 
     def rotate(self, angle):
         '''rotate the StickerRing. Use this instead of accessing the offset
@@ -236,6 +302,12 @@ class StickerRing:
         self.offsetDegrees = self.offsetDegrees + angle
         if self.offsetDegrees > 360:
             self.offsetDegrees = self.offsetDegrees - 360
+
+    # def _plot_sticker(self, points=None, bitmap=None, selected=False, tags=None):
+    #     '''Plot a single sticker to the canvas, as either a polygon or bitmap
+    #     depending on specified arguments.'''
+    #     if self.selected and bitmap:
+    #         i = Image.open(bitmap)
 
 
 class PanawaveStruct:
