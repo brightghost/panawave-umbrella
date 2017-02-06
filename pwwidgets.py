@@ -4,7 +4,7 @@ import tkinter
 from tkinter import N,E,S,W, VERTICAL, HORIZONTAL, END, CURRENT, DISABLED, NORMAL
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.ttk import Treeview
-from tkinter import ttk
+from tkinter import ttk, TclError
 import sys
 import os
 from time import sleep
@@ -18,41 +18,68 @@ except ImportError:
 import radialstructs
 
 class PWWidget:
-    '''
-    Parent class for Panawave Widgets. PWWdigets all extent a tkinter widget,
-as well as PWWidget.  Among other things, this parent class manages the
-references to the PWApp, which extends Tk and thus serves as a master for the
-tkinter widgets as well as a container for app state data.
-    '''
-    pwapp = None # this needs to be set when the app is instantiated.
+    '''Parent class for Panawave Widgets. PWWdigets all extent a tkinter
+    widget, as well as PWWidget.  Among other things, this parent class manages
+    the references to the PWApp, which extends Tk and thus serves as a master
+    for the tkinter widgets as well as a container for app state data.  '''
+    pwapp = None # this needs to be overriden when the app is instantiated.
 
     def disable_children(self, widget):
-        '''Disable all child widgets of the given parent.'''
-        for child in widget.winfo_children():
-            try:
-                child.state(["disabled"])
-                log.debug("Disabled widget {0}".format(repr(child)))
-            except (AttributeError, tkinter.TclError):
-                try:
-                    child.config(state=DISABLED)
-                    log.debug("Disabled widget {0}".format(repr(child)))
-                except AttributeError:
-                    log.debug("Did not find config or state methods for {0}; "
-                            "ignoring attempt to disable.".format(repr(child)))
+        '''Make a best-effort to disable all child widgets of the given parent.
+        Will not report any successes or failures.'''
+        log.debug("Attempting to disable children for widget {0}".format(repr(widget)))
+        # first, attempt to recurse to next level
+        try:
+            for child in widget.winfo_children():
+                log.debug("Found winfo_children of object {0}; calling recursivley on them.".format(repr(widget)))
+                self.disable_children(child)
+        except AttributeError:
+            log.debug("No further winfo_children found for object {0}; presuming we are at deepest level.".format(repr(widget)))
+        # then, disable this level
+        try:
+            widget.state(["disabled"])
+            log.debug("Disabled widget {0}".format(repr(widget)))
+            return
+        except (AttributeError, TclError):
+            log.debug("Did not find state method for {0}; trying config.".format(widget))
+            pass
+        try:
+            widget.config(state=DISABLED)
+            log.debug("Disabled widget {0}".format(repr(widget)))
+            return
+        except (AttributeError, TclError):
+            log.debug("Did not find config or state methods for {0}; "
+                    "ignoring attempt to disable.".format(repr(widget)))
+            return
 
     def enable_children(self, widget):
-        '''Enable all child widgets of the given parent.'''
-        for child in widget.winfo_children():
-            try:
-                child.state(["!disabled"])
-                log.debug("Enabled widget {0}".format(repr(child)))
-            except (AttributeError, tkinter.TclError):
-                try:
-                    child.config(state=NORMAL)
-                    log.debug("Enabled widget {0}".format(repr(child)))
-                except AttributeError:
-                    log.debug("Did not find config or state methods for {0}; "
-                            "ignoring attempt to enable.".format(repr(child)))
+        '''Make a best-effort to enable all child widgets of the given parent.
+        Will not report any successes or failures.'''
+        log.debug("Attempting to enable children for widget {0}".format(repr(widget)))
+        # first, attempt to recurse to next level
+        try:
+            for child in widget.winfo_children():
+                log.debug("Found winfo_children of object {0}; calling recursivley on them.".format(repr(widget)))
+                self.enable_children(child)
+        except AttributeError:
+            log.debug("No further winfo_children found for object {0}; presuming we are at deepest level.".format(repr(widget)))
+        # then, enable this level
+        try:
+            widget.state(["!enabled"])
+            log.debug("Disabled widget {0}".format(repr(widget)))
+            return
+        except (AttributeError, TclError):
+            log.debug("Did not find state method for {0}; trying config.".format(widget))
+            pass
+        try:
+            widget.config(state=NORMAL)
+            log.debug("Disabled widget {0}".format(repr(widget)))
+            return
+        except (AttributeError, TclError):
+            log.debug("Did not find config or state methods for {0}; "
+                    "ignoring attempt to enable.".format(repr(widget)))
+            return
+
 
 class PWMenuBar(PWWidget, tkinter.Menu):
     def __init__(self, *args, **kwargs):
@@ -99,6 +126,8 @@ class PWViewer(PWWidget):
         self.pw_canvas = PWCanvas(*args, **kwargs)
         self.pw_canvas.bind("<Button-1>", self._click_pw_canvas)
         self.pw_canvas.bind("<Double-Button-1>", self._double_click_pw_canvas)
+        # don't draw border when child console widgets are focused
+        self.pw_canvas.configure(highlightthickness=0)
 
     def create_list(self, *args, **kwargs):
         self.pw_list = PWListBox(*args, **kwargs)
@@ -313,11 +342,11 @@ class PWCanvas(PWWidget, tkinter.Canvas):
             try:
                 gridargs[arg] = kwargs.pop(arg)
             except KeyError:
-                log.debug("No value for gridding arg " + arg + " was found; passing default value.")
+                pass
         tkinter.Canvas.__init__(self, master, **kwargs)
         # center crosshairs
-        self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
-        self.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
+        # self.create_line(-40, -20, 40, 20, fill="red", dash=(4, 4))
+        # self.create_line(-40, 20, 40, -20, fill="red", dash=(4, 4))
         if gridargs['row'] is not None and gridargs['column'] is not None:
             self.grid(row=gridargs['row'], column=gridargs['column'], rowspan=gridargs['rowspan'],
                 columnspan=gridargs['columnspan'], sticky=(N,E,S,W))
@@ -334,6 +363,16 @@ class PWCanvas(PWWidget, tkinter.Canvas):
         log.debug("Re-scrolling origin to center of canvas based on new " +
                 "dimensions {0},{1}.".format(w, h))
         self.configure(scrollregion=(-w*.5, -h*.5, w*.5, h*.5))
+        self._scale_items()
+
+    def _scale_items(self, event=None):
+        '''Currently this only flips all items along the y axis, effectively
+        letting us use a conventional Cartesian coordinate system. This
+        abstraction will break, however, every time a new object is drawn, so
+        we must bind it to all canvas manipulations. In the future this
+        function will also scale the items in order to fill available space, if
+        the canvas is so configured.'''
+        self.scale("all", 0, 0, 1, -1)
 
     def clear(self):
         '''Remove all canvas items.'''
@@ -553,30 +592,56 @@ class PWFileChooser(ttk.Frame, PWWidget):
 
     def __init__(self, master, **kwargs):
         '''setter_callback: A function to be called when a new file is chosen.
-                            Will be passed a TextIOWrapper object; access the
-                            .name attribute if you want to do something else
-                            with it.
+                            The TextIOWrapper is discarded and only string
+                            representing the path is passed, because you may
+                            want to do something other than reading the file in
+                            as text.
         '''
         super().__init__(master=master)
         try:
             self.setter_callback = kwargs.pop('setter_callback')
         except KeyError:
-            pass
+            self.setter_callback = lambda: None
         self.f_display_name = tkinter.StringVar()
+        self.selected_file = None
         self.label = ttk.Label(self, textvariable=self.f_display_name, relief=tkinter.SUNKEN)
         self.button = ttk.Button(self, text="...", width=5, command=self.spawn_dialog)
 
         # Layout
-        self.label.pack(side=tkinter.LEFT, fill='both', expand=True, ipadx=2, padx=(0,2))
+        self.label.pack(side=tkinter.LEFT, fill='both', expand=True, ipadx=2, padx=(0,4))
         self.button.pack(side=tkinter.RIGHT)
 
     def spawn_dialog(self):
-        '''Spawn a standard tkinter file chooser dialog.'''
+        '''Spawn a standard tkinter file chooser dialog and report the new selection via callback.'''
         f = tkinter.filedialog.askopenfile(parent=self.winfo_toplevel())
-        f_display = os.path.split(f.name)[-1]
-        log.info("New file selected: {0}.".format(f_display))
-        self.f_display_name.set(f_display)
-        self.setter_callback(f)
+        self.set_selection(f.name)
+
+    def get_selection(self):
+        '''Returns the selected file, if any, in the form of an IOWrapper
+        object. This will automatically be passed to the setter_callback if
+        defined.'''
+        return self.selected_file
+
+    def set_selection(self, path):
+        '''Set selection to the given IOWrapper file object.'''
+        log.debug("Setting file selection to {0}".format(repr(path)))
+        if path is not None:
+            f = path
+            f_display = os.path.split(f)[-1]
+            self.f_display_name.set(f_display)
+            self.selected_file = f
+            log.info("New file selected: {0}.".format(f_display))
+            self.setter_callback(f)
+        else:
+            f_display = ""
+            self.f_display_name.set("")
+            self.selected_file = None
+            log.info("Selection cleared.")
+            self.setter_callback(None)
+
+    def clear_selection(self):
+        '''Clear selection, and fire callback, if defined, with 'None' as input.'''
+        self.set_selection()
 
 
 class PWSlider(tkinter.Frame, PWWidget):
@@ -722,6 +787,7 @@ class PWPeriodController(PWWidget, tkinter.Frame):
     spacing or a custom periodic sequence for the selected ring.'''
 
     def __init__(self, master=None, *args, **kwargs):
+        log.debug("INITTING a PWPeriodController. {0}".format(repr(self)))
         if master:
             self.master = master
         else:
@@ -891,15 +957,26 @@ class PWBaseStickerController(PWWidget, tkinter.Frame):
     file, either for the selected ring or the whole struct.'''
 
     def __init__(self, master=None, *args, **kwargs):
+        '''Arguments:
+            master          tkinter master widget
+            master_mode     modify BaseSticker for
+                            the whole struct (default=False)
+            all other arguments are passed to Frame.'''
+        log.debug("INITTING a PWBaseStickerController. {0}".format(repr(self)))
         if master:
             self.master = master
         else:
             self.master = self.pwapp.master
+        try:
+            self.master_mode = kwargs.pop('master_mode')
+        except KeyError:
+            self.master_mode = False
         tkinter.Frame.__init__(self, self.master, *args, **kwargs)
-        self.mode_var = tkinter.IntVar()
-        self.mode_var.set(0) #  0 == polygon
-                             #  1 == bitmap
-                             # -1 == mixed (no mode selected)
+        self.preview_sticker = None
+        self.mode_var = tkinter.IntVar() #  0 == none (inherit from PWStruct; not valid in master_mode)
+                                         #  1 == polygon
+                                         #  2 == bitmap
+                                         # -1 == mixed (no mode selected)
         self.geometry_var = tkinter.StringVar()
         # http://stackoverflow.com/a/6549535
         self.geometry_var.trace("w",
@@ -907,19 +984,26 @@ class PWBaseStickerController(PWWidget, tkinter.Frame):
                 index,
                 mode,
                 sv=self.geometry_var: self._entry_handler(self.geometry_var))
+        self.geometry_var._report_exception = lambda err=None: log.debug(
+                "Exception encountered while tracing geomtry_var. {0}".format(err))
 
-        ## Widgets
+        ## Top-level widgets
         self.preview_canvas = PWCanvas(self, height=50, width=50)
         self.preview_canvas.config(relief="sunken", border=2, height=150)
+        self.f_inherit = tkinter.Frame(self, height=52, width=150, padx=18, pady=12)
+        if self.master_mode is False:
+            self.pw_rb_inherit = ttk.Radiobutton(master=self.f_inherit,
+                    text="Inherit from master", variable=self.mode_var, value=0,
+                    command=self.pw_rb_inherit_selected)
         self.f_poly = tkinter.Frame(self, padx=18, pady=12)
         self.f_bmp = tkinter.Frame(self, padx=18, pady=12)
         self.f_poly_inner = tkinter.Frame(self.f_poly, padx=18, pady=0)
         self.f_bmp_inner = tkinter.Frame(self.f_bmp, padx=18, pady=0)
         self.pw_rb_poly = ttk.Radiobutton(master=self.f_poly,
-            text="Polygon", variable=self.mode_var, value=0,
+            text="Polygon", variable=self.mode_var, value=1,
             command=self.pw_rb_poly_selected)
         self.pw_rb_bmp = ttk.Radiobutton(master=self.f_bmp, text="Bitmap",
-            variable=self.mode_var, value=1, command=self.pw_rb_bmp_selected)
+            variable=self.mode_var, value=2, command=self.pw_rb_bmp_selected)
 
         # Poly mode inner contents
         self.pw_geom_input = tkinter.Entry(
@@ -940,7 +1024,22 @@ class PWBaseStickerController(PWWidget, tkinter.Frame):
         # Bitmap mode inner contents
         if PIL_INSTALLED:
             self.pw_bmp_input = PWFileChooser(self.f_bmp_inner, setter_callback=self._bmp_entry_handler)
-            self.pw_bmp_input.pack(fill='x')
+            self.bmp_size_enabled = tkinter.BooleanVar()
+            self.bmp_size_var = tkinter.StringVar()
+            self.bmp_size_var.trace("w",
+                    lambda name, index, mode,
+                    sv=self.bmp_size_var: self._bmp_entry_handler(self.pw_bmp_input.get_selection()))
+            self.bmp_size_var._report_exception = lambda err=None: log.debug(
+                    "Exception encountered while tracing geomtry_var. {0}".format(err))
+            self.pw_chkbx_bmp_size = tkinter.Checkbutton(
+                    master=self.f_bmp_inner,
+                    text="Resize:",
+                    variable=self.bmp_size_enabled,
+                    command=self.configure_bmp_size)
+            self.pw_bmp_size_input = ttk.Entry(
+                    master=self.f_bmp_inner,
+                    width=8,
+                    textvariable=self.bmp_size_var)
         else:
             self.pw_rb_bmp.config(state=tkinter.DISABLED)
             log.info("Disabling Bitmap control because 'pil' not importable.")
@@ -952,6 +1051,13 @@ class PWBaseStickerController(PWWidget, tkinter.Frame):
 
         # Layout
         self.preview_canvas.pack(fill='x')
+        self.f_inherit.pack(fill='x')
+        self.f_inherit.pack_propagate(0) # this allows us to set absolute height, 
+                                         # so we can keep the layout fixed in
+                                         # master and selectio modes whether
+                                         # inherit option is visible or not
+        if self.master_mode is False:
+            self.pw_rb_inherit.pack(anchor='w', pady=4)
         self.f_poly.pack(fill='x')
         self.f_bmp.pack(fill='x')
         self.pw_rb_poly.pack(anchor='w', pady=4)
@@ -961,112 +1067,224 @@ class PWBaseStickerController(PWWidget, tkinter.Frame):
         self.pw_chkbx_auto_centroid.pack(anchor='w', pady=4)
         self.pw_rb_bmp.pack(anchor='w', pady=4)
         self.f_bmp_inner.pack(fill='x')
+        if PIL_INSTALLED:
+            self.pw_bmp_input.pack(fill='x', pady=8)
+            self.pw_chkbx_bmp_size.pack(side='left')
+            self.pw_bmp_size_input.pack(side='right')
 
-        # Attempt to bind to selection
-        # self.bind_to_ring(self.pwapp.pw_interface_selected_rings)
+        self.bind_to_appropriate_target()
+
+    def bind_to_appropriate_target(self, event=None):
+        '''Attempt to bind to appropriate struct(s) per the widget mode.'''
+        if self.master_mode:
+            self.bind_to_target(self.pwapp.working_struct)
+        else:
+            self.bind_to_target(self.pwapp.pw_interface_selected_rings)
+
+    def configure_bmp_size(self):
+        '''Set or unset the PanawaveBitmap's size attribute based on interface state.'''
+        log.debug("Reconfiguring size for the inputted PWBitmap.")
+        self._bmp_entry_handler(self.pw_bmp_input.get_selection())
 
     def _entry_handler(self, string_var):
         '''Callback attached to updates of the polygon geometry text entry.'''
-        # some convenience parsing to allow other paren styles and omission of
-        # inter-point commas; allows valid input like "[0,0][10,4][5,5]"
-        entered_text = string_var.get()
-        log.debug("Parsing the entered text: {0}".format(entered_text))
+        parsed_text = self.parse_input_string(string_var.get())
+        if parsed_text is None:
+            return
+        if self.centroid_var.get():
+            self.preview_sticker = radialstructs.PanawavePolygon(parsed_text, centroid=None)
+        else:
+            self.preview_sticker = radialstructs.PanawavePolygon(parsed_text, centroid=(0,0))
+        self.update_preview_canvas(self.preview_sticker)
+        self.update_appropriate_base_polys(self.preview_sticker)
+
+    def _bmp_entry_handler(self, file):
+        '''Callback attached to updates of the bitmap file entry.'''
+        if file is None:
+            return
+        if self.bmp_size_enabled.get():
+            try:
+                size = int(self.bmp_size_var.get())
+            except ValueError:
+                size = None
+        else:
+            size = None
+        self.preview_sticker = radialstructs.PanawaveBitmap(file, size=size)
+        self.update_preview_canvas(self.preview_sticker)
+        self.update_appropriate_base_polys(self.preview_sticker)
+
+    def pw_rb_poly_selected(self):
+        '''Update input states and ring attributes when poly mode is selected.'''
+        log.info("Switching selected ring(s) to geometric basepoly")
+        log.debug("Disabling bmp inputs because polygon mode was selected.")
+        # TODO disable bmp inputs
+        self.disable_children(self.f_bmp_inner)
+        self.enable_children(self.f_poly_inner)
+        self._entry_handler(self.geometry_var)
+
+    def pw_rb_bmp_selected(self):
+        '''Update input states and ring attributes when bitmap mode is selected.'''
+        log.info("Swtching selected ring(s) to bitmap base sticker.")
+        log.debug("Disabling poly inputs becuase bitmap mode was selected.")
+        self.disable_children(self.f_poly_inner)
+        self.enable_children(self.f_bmp_inner)
+        self._bmp_entry_handler(self.pw_bmp_input.get_selection())
+
+    def pw_rb_inherit_selected(self):
+        '''Update input states and ring attributes when None/Inherit mode is selected.'''
+        self.disable_children(self.f_poly_inner)
+        self.disable_children(self.f_bmp_inner)
+        self.update_appropriate_base_polys(None)
+        self.preview_sticker = self.pwapp.working_struct.persistent_state['base_sticker']
+        self.update_preview_canvas(self.pwapp.working_struct.persistent_state['base_sticker'])
+
+    def update_preview_canvas(self, bitmap_or_poly):
+        '''clear the preview canvas and draw the new preview object.'''
+        self.preview_canvas.clear()
+        bitmap_or_poly.draw(self.preview_canvas)
+        self.draw_centroid_indicator(bitmap_or_poly)
+        self.preview_canvas._recenter_scroll_region()
+
+    def draw_centroid_indicator(self, bitmap_or_poly):
+        # TODO either this should be passed an explicit object, or
+        # update_preview_canvase should also reference the class
+        # preview_sticker
+        # center crosshairs
+        (cx, cy) = bitmap_or_poly.centroid
+        self.preview_canvas.create_line(-20 + cx, -10 + cy, 20 + cx, 10 + cy, fill="#4285F4", dash=(4, 4))
+        self.preview_canvas.create_line(-20 + cx, 10 + cy, 20 + cx, -10 + cy, fill="#4285F4", dash=(4, 4))
+
+    def parse_input_string(self, entered_text):
+        '''Convenience parsing to allow various bracket styles and
+        omission of inter-point commas; allows valid input like
+        "[0,0][10,4][5,5]".'''
+        if len(entered_text) <  15:
+            return None
         entered_text = entered_text.replace("{","(").replace("[","(")
         entered_text = entered_text.replace("}",")").replace("]",")")
         entered_text = entered_text.replace(")(","),(")
         try:
             l = literal_eval(entered_text)
         except (ValueError, SyntaxError):
-            log.debug("Entered string could not be parsed as a valid polygon.")
-            return
-        self.preview_poly = radialstructs.PanawavePolygon(l, centroid=None)
-        self.preview_canvas.clear()
-        self.preview_poly.draw(self.preview_canvas)
-        self.update_active_ring_base_poly(l)
+            return None
+        log.debug("Succesfully parsed valid literals from the entered text: {0}".format(l))
+        return l
 
-    def _bmp_entry_handler(self, file):
-        self.preview_img = radialstructs.PanawaveBitmap(file.name, centroid=None)
-        self.preview_canvas.clear()
-        self.preview_img.draw(self.preview_canvas)
-        self.update_active_ring_base_poly(preview_img)
+    # def fmt_polygon(self, point_list):
+    #     '''Return a textual representaion of a polygon, compatible with
+    #     the controller's text input.'''
+    #     repr = repr(point_list)
+    #     repr = repr.replace("),(",")(")
+    #     return repr
 
-    def fmt_polygon(self, sl):
-        '''Returns a textual representaion of a polygon, compatible with
-        the controller's text input.'''
-        # str_sl = [str(v) for v in sl]
-        # repr = ', '.join(str_sl)
-        # return repr
-        pass
-
-    def bind_to_ring(self, ring_or_rings):
-        '''Manually attach this widget to a ring(s). If a selection exists
-        when the widget is initialized, you do not need to call this manually.'''
-        r = ring_or_rings
-        # TODO TODO TODO
-        # All of this was copied from PWPeriodController
-        # TODO TODO TODO
-        if type(r) is radialstructs.StickerRing:
-            # TODO: Realized in testing...this will never be reached,
-            # because the pw_interface_selected_rings is always a list of 
-            # one or more members.
-            if r.scaler_list is None or '1':
-                self.mode_var.set(0)
-                self.pw_rb_simple_selected()
-            elif len(r.scaler_list) > 1:
-                self.mode_var.set(1)
-                self.pw_pattern_input.delete(0, END)
-                self.pw_pattern_input.insert(
-                        0,
-                        self.fmt_scaler_list(r.scaler_list))
-                self.pw_rb_complex_selected()
+    def bind_to_target(self, struct_or_ring_list):
+        '''Manually attach this widget ring(s) or a struct. Will be bound
+        automatically when initializeed if a valid target for the indicated
+        mode is found.'''
+        t = struct_or_ring_list
+        log.debug("Testing object {0} for type and reconciliability.".format(repr(t)))
+        if type(t) is radialstructs.PanawaveStruct:
+            # Presumably we are in master mode...
+            bs = t.persistent_state['base_sticker']
+            self.update_state_per_target_sticker(bs)
         else:
-            # attempt to enable the widget only if all selected rings
-            # are in agreement
-            first_sl = r[0].scaler_list
-            if all(len(ring.scaler_list) == 1 for ring in r):
-                self.mode_var.set(0)
-                self.pw_rb_simple_selected()
-            elif all(ring.scaler_list == first_sl for ring in r):
-                self.mode_var.set(1)
-                self.pw_pattern_input.delete(0, END)
-                self.pw_pattern_input.insert(0, self.fmt_scaler_list(first_sl))
-                self.pw_rb_complex_selected()
+            # 'selection' mode, then
+            # set the widget state only if all selected base_stickers are equivalent
+            try:
+                if len(t) is 0:
+                    # An empty list indicates no selection...
+                    self.disable_widget()
+                    return
+                first_r = t[0]
+                first_st = first_r.base_sticker
+                if not all(type(ring.base_sticker) == type(first_st) for ring in t):
+                    raise IrreconcilableDifferencesError("Cannot reconcile because the selected rings do not have equivalent base_sticker types")
+                elif all(ring.base_sticker is None for ring in t):
+                    self.update_state_per_target_sticker(None)
+                elif not all(ring.base_sticker == first_st for ring in t):
+                    raise IrreconcilableDifferencesError("Cannot reconcile because the selected rings do not have equivalent base_stickers characteristics.")
+                else:
+                    # all rings have base_stickers of the same type and value
+                    self.update_state_per_target_sticker(first_st)
+            except IrreconcilableDifferencesError as e:
+                log.info("IrreconcilableDifferencesError raised while binding to target: {0}".format(e.args[0]))
+                self.set_ambiguous_mode()
+
+    def update_state_per_target_sticker(self, target):
+        '''Update the interface state to reflect the given target. Must provide
+        a single sticker-like object.'''
+        bs = target
+        if bs is None:
+            # No explicit base_sticker on a ring indicates we are inheriting from PWStruct
+            self.mode_var.set(0)
+            self.pw_rb_inherit_selected()
+        elif type(bs) is radialstructs.PanawavePolygon:
+            self.mode_var.set(1)
+            self.pw_geom_input.delete(0, END)
+            self.pw_geom_input.insert(0, bs.as_string())
+            if bs.centroid == (0, 0):
+                self.centroid_var.set(False)
             else:
-                log.debug("Multiple rings selected and their scaler_lists are "
-                    "not in agreement; not selecting either mode.")
-                self.mode_var.set(-1)
-                log.debug("mode_var is: {0}".format(self.mode_var))
+                self.centroid_var.set(True)
+            self.pw_rb_poly_selected()
+        elif type(bs) is radialstructs.PanawaveBitmap:
+            self._bind_bmp_size_input_to_target(bs)
+            self.mode_var.set(2)
+            self.pw_bmp_input.set_selection(bs.as_string())
+            self.pw_rb_bmp_selected()
 
-    def pw_rb_poly_selected(self):
-        '''Changing the selected mode in the interface and propogate change to
-        selected ring(s).'''
-        log.info("Switching selected ring(s) to geometric basepoly")
-        log.debug("Disabling bmp inputs because polygon mode was selected.")
-        # TODO disable bmp inputs
-        self.disable_children(self.f_bmp_inner)
-        self.enable_children(self.f_poly_inner)
-        self._entry_handler(self.geom_var)
+    def _bind_bmp_size_input_to_target(self, target):
+        '''Update status of the size input to reflect the target object.'''
+        if target.size is not None:
+            self.bmp_size_var.set(str(target.size))
+            self.bmp_size_enabled.set(1)
+        else:
+            self.bmp_size_var.set("")
+            self.bmp_size_enabled.set(0)
 
-    def pw_rb_bmp_selected(self):
-        '''Enable input box when complex mode is selected.'''
-        log.debug("Swtching selected ring(s) to complex period; enabling input "
-                "box because complex mode was selected.")
-        # self.pw_geom_input.config(state=tkinter.DISABLED)
-        # self.pw_geom_input_label.config(state=tkinter.DISABLED)
-        # self.pw_chkbx_auto_centroid.config(state=tkinter.DISABLED)
-        self.disable_children(self.f_poly_inner)
-        self.enable_children(self.f_bmp_inner)
+    def set_ambiguous_mode(self):
+        '''Set mode to -1, which represents a set of selected objects which
+        cannot be reconciled. All radiobuttons will be unselected to represent
+        this, and selecting any will bring all selected object in-line.'''
+        log.debug("Multiple rings selected and their base_stickers are "
+            "not in agreement; not selecting either mode.")
+        self.mode_var.set(-1) # This will also unselect the rb's
+
+    def disable_widget(self):
+        '''The widget should be disabled entirely if a valid target for the
+        given mode cannot be identified.'''
+        self.disable_children(self)
+        pass
 
     def update_centroid_calc_method(self):
-        pass
+        '''Just call the rb_poly_selected callback again, which will update with the current value of centroid_var'''
+        self.pw_rb_poly_selected()
 
-    def update_active_ring_base_poly(self, point_list):
-        '''Apply the given scaler_list to the selected rings(s)'''
-        for ring in self.pwapp.pw_interface_selected_rings:
-            log.debug("updating base_poly of ring {0} with value: {1}".format(
-                repr(ring), repr(point_list)))
-            ring.set_base_sticker(point_list=point_list)
+    def update_appropriate_base_polys(self, bmp_or_poly):
+        '''Apply the given base poly to the selected ring(s) or master object,
+        depending on widget mode.'''
+        log.debug("Applying BaseSticker {0} to appropriate rings.".format(bmp_or_poly))
+        # if self.master_mode and (type(bmp_or_poly) is radialstructs.PanawaveBitmap):
+        if self.master_mode:
+            log.debug("Updating base_sticker for PanawaveStruct due to 'master_mode'.")
+            self.pwapp.working_struct.set_base_sticker(bmp_or_poly)
+      # elif self.master_mode:
+      #     log.debug("Updating master BaseSticker with new poly.")
+      #     self.pwapp.working_struct.set_base_sticker(point_list=bmp_or_poly)
+        elif (type(bmp_or_poly) is radialstructs.PanawaveBitmap):
+            log.debug("Updating selected ring(s) with new bitmap.")
+            for ring in self.pwapp.pw_interface_selected_rings:
+                ring.set_base_sticker(bmp_or_poly)
+        else:
+            log.debug("Updating selected ring(s) with new poly.")
+            for ring in self.pwapp.pw_interface_selected_rings:
+                ring.set_base_sticker(bmp_or_poly)
         self.pwapp.viewer._rebuild_pw_canvas()
+
+
+class IrreconcilableDifferencesError(Exception):
+    '''Failure to identify a common attribute amongst the given objects which
+    can be controlled in unison.'''
 
 
 class PWButton(PWWidget, ttk.Button):
@@ -1097,6 +1315,7 @@ class PWAnimController(PWWidget, tkinter.Frame):
         self.toggle_button = ttk.Button(self, text="Start", width=5,
                 command=self.toggle_animation)
         self.toggle_button.grid(row=0, column=1, rowspan=2, padx=4, pady=2)
+        self.toggle_button.grid_configure(sticky='NS')
         self.speedslider = ttk.Scale(self, orient=HORIZONTAL, from_=0, to=3,
                 value=1.5, takefocus=False, command=self._set_anim_speed)
         self.speedslider.grid(row=1, column=0, sticky=(W,E), pady=2)

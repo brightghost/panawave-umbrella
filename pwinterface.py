@@ -70,13 +70,16 @@ class PanawaveApp:
 
         master = self.master
         master.wm_title("Panawave Umbrella Editor")
+        # TODO this may be conflicting with other layout...
         master.columnconfigure(0, weight=1, minsize=100)
-        master.rowconfigure(0, weight=1, minsize=100)
+        master.rowconfigure(1, weight=1, minsize=100)
 
         # THEME:
         styler = Style()
         if "clam" in styler.theme_names():
             styler.theme_use("clam")
+        # The stupid ttk.Entry does not change the bg color when disabled by default...
+        styler.map("TEntry",fieldbackground=[("active", "white"), ("disabled", "lightgray")])
 
         # MENU BAR:
         self.pw_menu_bar = Menu()
@@ -192,7 +195,7 @@ class PanawaveApp:
     def load_new_struct(self, file=None, target_canvas=None):
         '''create an empty struct, attach it to the canvas,
         and populate it from a file if one is given.'''
-        self.selected_ring = None
+        # self.selected_ring = None
         self.working_struct = PanawaveStruct(canvas=target_canvas)
         if file is not None:
             self.working_struct.load_from_file(file)
@@ -323,7 +326,14 @@ class PWPeriodDialog(tkinter.Toplevel, PWWidget):
                 self.parent_center_x - (self.winfo_width() / 2)
         # y a bit above center because it looks better
         self.offset_y = \
-                self.parent_center_y - (self.winfo_height() /2) - 100
+                (self.parent_center_y - (self.winfo_height() /2)) * .8
+        log.debug("Calculated y offset for spawning window: {0}.".format(self.offset_y))
+        if self.winfo_height() > self.master.winfo_height():
+            # Don't draw the child window any higher than the parent if it's
+            # taller, because we don't want to draw titlebar off screen.
+            # There's maybe another way to just bump it back on screen...
+            self.offset_y = (self.master.winfo_height() / 2)
+
 
         self.geometry("+%d+%d" % (self.offset_x, self.offset_y))
 
@@ -366,34 +376,25 @@ class PWBaseStickerDialog(tkinter.Toplevel, PWWidget):
     when saving state.'''
 
     def __init__(self, master):
-        # Stash pre-state for use by self.cancel
-
-        # self.prior_scaler_states = []
-        # for r in self.pwapp.pw_interface_selected_rings:
-        #     self.prior_scaler_states.append(deepcopy(r.scaler_list))
-        # log.debug("Stashed scaler_list states prior to spawning period "
-        #         "dialog: {0}".format(repr(self.prior_scaler_states)))
-        # self.prior_locked_ring_list_state = deepcopy(
-        #         self.pwapp.working_struct.persistent_state['unlocked_rings'])
-        # log.debug("Stashed unlocked_rings list prior to spawning period "
-        #        "dialog: {0}".format(repr(self.prior_locked_ring_list_state)))
-
+        '''Populate widgets and configure bindings.'''
         # Interface
-
         tkinter.Toplevel.__init__(self, master)
                 # override the master inherited from PWWidget because we're
                 # casting it in a new window.
+        self.stash_state()
 
         self.tab_view = ttk.Notebook(self)
         self.tab_view.enable_traversal() # ctl-tab keybindings
 
-        self.sel_base_st_controller = PWBaseStickerController(master=self.tab_view)
-        self.tab_view.add(self.sel_base_st_controller, text="Selection")
+        self.base_st_controller_sel = PWBaseStickerController(master=self.tab_view)
+        self.tab_view.add(self.base_st_controller_sel, text="Selection")
 
-        self.master_base_st_controller = PWBaseStickerController(master=self.tab_view)
-        self.tab_view.add(self.master_base_st_controller, text="Master sticker")
-        # self.sel_base_st_controller.pack()
-        # self.master_base_st_controller.pack()
+        self.base_st_controller_mstr = PWBaseStickerController(master=self.tab_view, master_mode=True)
+        self.tab_view.add(self.base_st_controller_mstr, text="Master sticker")
+
+        # Disable selection controller if no selection
+        if len(self.pwapp.pw_interface_selected_rings) < 1:
+            self.tab_view.tab(0, state=DISABLED)
 
         self.btn_box = tkinter.Frame(self)
         self.tab_view.pack(padx=12, pady=(12,0), fill='x')
@@ -406,6 +407,7 @@ class PWBaseStickerDialog(tkinter.Toplevel, PWWidget):
         cancel_button.pack(side=tkinter.RIGHT, padx=6)
 
         # Bindings
+        self.tab_view.bind("<ButtonRelease-1>", self.rebind_controllers)
         self.bind("<Return>", self.submit)
         self.bind("<Escape>", self.cancel)
 
@@ -428,12 +430,38 @@ class PWBaseStickerDialog(tkinter.Toplevel, PWWidget):
                 self.parent_center_x - (self.winfo_width() / 2)
         # y a bit above center because it looks better
         self.offset_y = \
-                self.parent_center_y - (self.winfo_height() /2) - 100
+                (self.parent_center_y - (self.winfo_height() /2)) * .8
 
         self.geometry("+%d+%d" % (self.offset_x, self.offset_y))
 
         # handle closing window from window manager
         self.protocol("WM_DELETE_WINDOW", self.cancel)
+
+    def rebind_controllers(self, event=None):
+        '''Bound to tab clicks so the selection controller will be updated to
+        reflect changes made in the master controller.'''
+        # Updating both causes a bug I don't feel like addressing: the mstr
+        # preview_canvas blanks when the sel controller is updated...but only
+        # if the sel is inheriting the master bitmap sticker.  Just updating
+        # the visible controller avoids this.
+        curtab = self.tab_view.index(self.tab_view.select())
+        if curtab is 0:
+            self.base_st_controller_sel.bind_to_appropriate_target()
+        elif curtab is 1:
+            self.base_st_controller_mstr.bind_to_appropriate_target()
+
+    def stash_state(self):
+        '''Stash pre-state for use by self.cancel'''
+        pass
+        # self.prior_scaler_states = []
+        # for r in self.pwapp.pw_interface_selected_rings:
+        #     self.prior_scaler_states.append(deepcopy(r.scaler_list))
+        # log.debug("Stashed scaler_list states prior to spawning period "
+        #         "dialog: {0}".format(repr(self.prior_scaler_states)))
+        # self.prior_locked_ring_list_state = deepcopy(
+        #         self.pwapp.working_struct.persistent_state['unlocked_rings'])
+        # log.debug("Stashed unlocked_rings list prior to spawning period "
+        #        "dialog: {0}".format(repr(self.prior_locked_ring_list_state)))
 
     def cancel(self, *args):
         '''Close the dialog and roll back changes.'''
