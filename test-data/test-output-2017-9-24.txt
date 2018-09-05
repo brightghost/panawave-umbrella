@@ -1,0 +1,56 @@
+{
+    "base_sticker": {
+        "centroid": [
+            10.0,
+            10.0
+        ],
+        "points": [
+            [
+                0,
+                0
+            ],
+            [
+                0,
+                20
+            ],
+            [
+                20,
+                20
+            ],
+            [
+                20,
+                0
+            ]
+        ]
+    },
+    "master_orbit_speed": 1.5,
+    "unlocked_rings": []
+}
+{
+    "ring_array": {
+        "29748": {
+            "base_sticker": null,
+            "count": 15,
+            "id": 29748,
+            "increment": 24.0,
+            "master": {
+                "canvas": {
+                    "_name": "139696254991104",
+                    "_tclCommands": [
+                        "139696311638920_recenter_scroll_region",
+                        "139696300188808_click_pw_canvas",
+                        "139696295173064_double_click_pw_canvas"
+                    ],
+                    "_w": ".139696254991104",
+                    "children": {
+                        "139696254992056": {
+                            "_name": "139696254992056",
+                            "_tclCommands": [
+                                "139696255069064StringVar",
+                                "139696255068680execute_console_input",
+                                "139696255069512navigate_console_history",
+                                "139696255069704navigate_console_history"
+                            ],
+                            "_w": ".139696254991104.139696254992056",
+                            "children": {},
+                            "master": 
