@@ -60,11 +60,11 @@ class PanawaveApp:
                 target_canvas=self.viewer.pw_canvas)
 
         # DEBUG IPython Console:
-        embed()
+        # embed()
+        # Previously this worked great with no special accomodations, but something different in the env. on my new dev machine means this no longer cooperates with tk. Previously, the mainloop() call below was never reached but the framework seemed to start the loop somewhere prior automatically. That's no longer happening, and no order of calls seems to allow both event handler loops to coexist here. Will need to look into this more, suspect it's an ipython change that broke this.
 
-        # TODO somehow this isn't actually being used...and I'm  not entirely
-        # clear where the tk loop *is* entered!
-        # self.tkapp.mainloop()
+        # Begin the TK event handler loop to kick everything off!
+        self.master.mainloop()
 
     def create_ui(self):
 
